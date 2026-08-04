@@ -1,0 +1,684 @@
+/* as-is 3개 앱에서 바이트 단위로 동일했던 공통 CSS — 원본 그대로 추출 (2단계 완료) */
+/* ══════════════════════════════════════════════════════════════
+     디자인 토큰 — 아래 값 밖의 숫자는 쓰지 않습니다.
+     여백 17종·반경 4종·반픽셀 글자 크기가 뒤섞여 있던 것을 규칙으로 묶은 것입니다.
+     ══════════════════════════════════════════════════════════════ */
+  :root{
+    /* ── 표면 3단계 ──
+       캔버스를 한 단계 더 낮춰(#0e0f13 → #0b0c0f) 사진 카드가 화면에서
+       유일하게 밝은 면이 되게 한다. 갤러리 방향의 출발점이다. */
+    --s0:#0b0c0f; --s1:#131519; --s2:#1b1e25;
+    /* 선은 예전(#2a2e3a)보다 약하게. 카드 테두리를 걷어내는 방향이라
+       남는 것은 구분선뿐이고, 구분선은 눈에 띌 이유가 없다. */
+    --hair:#22252d; --hair-strong:#333844;
+    /* 본문 대비는 WCAG AA(4.5:1) 기준. 가장 불리한 --s2(#1b1e25) 위에서도
+       tx 14.6 / tx2 7.4 / tx3 4.8 로 통과한다.
+       네 번째 단계는 대비를 지키면 tx3 와 구별되지 않아, 색 대신
+       크기·굵기로 위계를 만들고 별칭으로 둔다. */
+    --tx:#eef0f5; --tx2:#a6adbb; --tx3:#828997; --tx4:var(--tx3);
+    --acc:#ffb454; --acc-text:var(--acc); --on-acc:#0b0c0f;
+    --acc2:#7dd3fc; --ok:#4ade80;
+    /* 의미색 — 경고(비어 있음·길이 초과·출력 제외)와 위험(해제·초기화) */
+    --warn:#f5c451; --warn-line:#4d442c; --warn-bg:rgba(245,196,81,.06);
+    --danger:#ff9b9b; --danger-line:#7c4a4a;
+
+    /* ── 간격 6단계 ── */
+    --sp1:4px; --sp2:8px; --sp3:12px; --sp4:16px; --sp5:24px; --sp6:32px;
+    /* ── 반경 3단계 ── 칩·버튼 / 카드 / 큰 컨테이너 */
+    --r1:8px; --r2:12px; --r3:16px;
+    /* ── 그림자 3단계 ── */
+    --e1:0 1px 2px rgba(0,0,0,.4);
+    --e2:0 4px 16px rgba(0,0,0,.45);
+    --e3:0 16px 48px rgba(0,0,0,.6);
+
+    /* 옛 이름은 별칭으로 남긴다 — 나머지 규칙을 한꺼번에 고치지 않고
+       단계적으로 옮기기 위한 것이다. */
+    --bg:var(--s0); --panel:var(--s1); --panel2:var(--s2); --line:var(--hair);
+    color-scheme:dark;
+  }
+  :root[data-theme="light"]{
+    --s0:#f5f6f8; --s1:#ffffff; --s2:#e8ebf0;
+    --hair:#dfe3e8; --hair-strong:#c5cbd4;
+    --tx:#17191f; --tx2:#454d5a; --tx3:#5f6877; --tx4:var(--tx3);
+    /* 밝은 바탕에서는 앱 액센트를 선·면에만 쓰고 선택 글자는 본문색으로 둔다. */
+    --acc-text:var(--tx); --on-acc:#101217;
+    --acc2:#075985; --ok:#167548;
+    --warn:#765000; --warn-line:#c9a55a; --warn-bg:rgba(118,80,0,.07);
+    --danger:#b4232f; --danger-line:#d69aa1;
+    --e1:0 1px 2px rgba(15,23,42,.08);
+    --e2:0 4px 16px rgba(15,23,42,.12);
+    --e3:0 16px 48px rgba(15,23,42,.16);
+    color-scheme:light;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  /* 한국어 조판 —
+     keep-all 이 없으면 "골든아워" 같은 낱말이 줄 끝에서 쪼개진다.
+     행간 1.5 는 한글에 빡빡해 1.6 으로 올렸다.
+     Pretendard 는 설치돼 있는 사람에게만 걸리도록 맨 앞에 둔다.
+     단일 HTML 오프라인 배포라 웹폰트는 쓸 수 없다. */
+  body{background:var(--bg);color:var(--tx);
+    font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,
+      "Apple SD Gothic Neo","Segoe UI",Roboto,sans-serif;
+    font-size:13px;line-height:1.6;min-height:100vh;
+    word-break:keep-all;overflow-wrap:break-word}
+  .wrap{max-width:1440px;margin:0 auto;padding:16px 24px}
+
+  /* ── 아이콘 ── 24 격자에 선 굵기 1.7. 크기·색은 부모를 따른다. */
+  .ic{width:16px;height:16px;flex:0 0 auto;display:inline-block;vertical-align:-3px;
+    fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+  /* ── 헤더 ── 한 줄에 세 덩이: 좌측 현재 앱, 우측 선택 방법 탭과 빌더 전환.
+     폭이 모자라면 탭 묶음이 아랫줄로 넘어간다(1040px 하한에서도 겹치지 않는다). */
+  header{display:flex;align-items:center;flex-wrap:wrap;gap:var(--sp3) var(--sp5);
+    margin-bottom:var(--sp4);min-width:0}
+  .brand{display:flex;align-items:center;gap:var(--sp3);min-width:0;flex:1 1 260px}
+  /* 제목 덩이(제목 22 + 설명 12 ≈ 51px)를 채우는 크기.
+     24 격자를 46px 로 키우면 선이 그만큼 굵어지므로 stroke 를 1.5 → 1.25 로 낮춰
+     본문 아이콘과 시각적 무게를 맞춘다. */
+  .brand-ic{width:46px;height:46px;flex:0 0 auto;fill:none;stroke:var(--acc);stroke-width:1.25;
+    stroke-linecap:round;stroke-linejoin:round}
+  .brand-tx{position:relative;min-width:0}
+  header h1{margin:0;font-size:22px;font-weight:700;line-height:1.25;letter-spacing:-.02em;
+    color:var(--tx);min-width:0}
+  .sub{min-width:0;color:var(--tx3);font-size:12px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* ── 빌더 전환 ── 제목 자체가 여는 버튼이다.
+     제목과 전환 대상이 같은 것을 가리키므로 따로 떼어 둘 이유가 없다. */
+  .brand-btn{display:flex;align-items:center;gap:var(--sp2);max-width:100%;
+    margin:0 -8px;padding:2px 8px;border:0;border-radius:var(--r1);background:none;
+    color:inherit;font:inherit;letter-spacing:inherit;cursor:pointer;transition:.15s}
+  .brand-btn>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .brand-btn:hover{background:var(--s1)}
+  .brand-btn:focus-visible{outline:2px solid var(--acc2);outline-offset:-2px}
+  .caret{width:18px;height:18px;color:var(--tx3);transition:.2s}
+  .brand-btn[aria-expanded="true"] .caret{transform:rotate(180deg);color:var(--tx2)}
+
+  .builder-menu{display:none;position:absolute;top:calc(100% + var(--sp2));left:-8px;z-index:40;
+    min-width:260px;padding:var(--sp1);background:var(--s2);
+    border:1px solid var(--hair-strong);border-radius:var(--r2);box-shadow:var(--e3)}
+  .builder-menu.open{display:block}
+  .bm-item{display:flex;align-items:center;gap:var(--sp3);padding:9px 10px;
+    border-radius:var(--r1);color:var(--tx2);text-decoration:none;transition:.13s}
+  .bm-item .ic{color:var(--tx3)}
+  a.bm-item:hover{background:var(--s1);color:var(--tx)}
+  a.bm-item:hover .ic{color:var(--tx2)}
+  a.bm-item:focus-visible{outline:2px solid var(--acc2);outline-offset:-2px}
+  .bm-item.on{color:var(--tx);cursor:default}
+  .bm-item.on .ic{color:var(--acc)}
+  .bm-name{flex:1;min-width:0;font-size:13px;font-weight:600;white-space:nowrap}
+  .bm-note{font-size:11px;color:var(--tx3);white-space:nowrap}
+
+
+  .subject-box{display:flex;gap:8px;align-items:center;flex:1;min-width:0}
+  .subject-box input{flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);
+    color:var(--tx);padding:12px 14px;border-radius:12px;font-size:13px;font-family:inherit}
+  .subject-box input:focus{outline:none;border-color:var(--acc2)}
+
+  .profile{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    overflow:hidden;flex:0 0 auto;max-width:330px}
+  .profile.open{position:absolute;z-index:20;right:24px;max-width:420px;
+    box-shadow:0 12px 32px rgba(0,0,0,.5)}
+  .profile-head{display:flex;align-items:center;gap:8px;width:100%;padding:11px 13px;
+    background:none;border:none;cursor:pointer;font-family:inherit;text-align:left}
+  .profile-head:hover{background:var(--s1)}
+  .profile-head:focus-visible,.sec-head:focus-visible,.chip:focus-visible,.opt:focus-visible,
+  .modetab:focus-visible,.sc:focus-visible,.tag:focus-visible,.preset-card:focus-visible
+    {outline:2px solid var(--acc2);outline-offset:-2px}
+  .arrow{color:var(--tx3);font-size:11px;transition:.2s}
+  .profile.open .profile-head .arrow{transform:rotate(90deg)}
+  .profile-head-t{font-size:12px;font-weight:600;color:var(--tx3);white-space:nowrap}
+  .profile-head-s{font-size:12px;color:var(--acc2);margin-left:auto;text-align:right;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .profile-body{display:none;padding:0 13px 12px}
+  .profile.open .profile-body{display:block}
+  .profile-grid{display:grid;grid-template-columns:1fr;gap:10px}
+  .profile-label{display:block;font-size:11px;color:var(--tx3);font-weight:700;margin-bottom:6px}
+  .seg{display:flex;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:3px;gap:2px}
+  .seg button{flex:1;border:none;background:none;color:var(--tx3);padding:8px 10px;border-radius:8px;
+    cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;transition:.13s;white-space:nowrap}
+  .seg button.on{background:var(--s2);color:var(--tx)}
+  .mode-help{font-size:11px;color:var(--tx3);margin-top:9px;line-height:1.45}
+
+  /* 선택 방법 탭 — 헤더 우측의 분절 컨트롤.
+     헤더 한 줄에 들어가야 하므로 보조 설명(small)은 감추고 title 로 넘긴다.
+     밑줄 방식은 세로 정렬이 어긋나 보여, 한 덩이로 묶고 현재 항목만 면을 준다. */
+  /* 묶음 높이 약 53px — 좌측 제목 덩이(아이콘 46 / 제목 22 + 설명 12 ≈ 51px)와
+     눈으로 맞춘 값이다. 이보다 작으면 헤더 위쪽에 붙어 보인다. */
+  .modetabs{display:flex;align-items:center;gap:2px;flex:0 0 auto;background:var(--s1);border:0;
+    border-radius:var(--r2);padding:var(--sp1);margin:0}
+  .modetab{display:flex;align-items:center;gap:var(--sp2);white-space:nowrap;
+    flex:0 0 auto;padding:var(--sp3) 18px;border-radius:var(--r1);border:none;background:none;
+    color:var(--tx3);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;
+    transition:.15s;text-align:left;box-shadow:none}
+  .modetab .ic{width:20px;height:20px;opacity:.75}
+  .modetab.on .ic{opacity:1;color:var(--acc)}
+  .modetab:hover{color:var(--tx2)}
+  .modetab.on{background:var(--s2);color:var(--tx);font-weight:700;box-shadow:none}
+  .modetab small{display:none}
+  .pane{display:none} .pane.on{display:block}
+
+  .wiz{background:none;border:0;border-radius:0;padding:var(--sp2) 0 0;margin-bottom:var(--sp4)}
+  .wiz-step{margin-bottom:18px} .wiz-step:last-of-type{margin-bottom:14px}
+  .wiz-q{font-size:15px;font-weight:600;margin-bottom:10px}
+  .wiz-q b{color:var(--tx3);margin-right:var(--sp2);font-weight:400}
+  .opts{display:flex;flex-wrap:wrap;gap:7px}
+  .opt{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 15px;
+    cursor:pointer;font-family:inherit;font-size:13px;color:var(--tx);transition:.13s}
+  .opt:hover{border-color:var(--hair-strong)}
+  .opt.on{background:rgba(255,180,84,.14);
+    background:color-mix(in srgb,var(--acc) 14%,transparent);
+    border-color:var(--acc);color:var(--acc-text);font-weight:600}
+  /* 예시 이미지가 있는 선택지는 카드 격자로 — 이미지 위, 이름·설명 아래 */
+  .opts.pvgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+    gap:var(--sp3);align-items:stretch}
+  .opt.haspv{display:flex;flex-direction:column;padding:0;overflow:visible;text-align:left}
+  .opt.haspv .txt{padding:8px 11px 10px;min-width:0}
+  .opt.haspv .kr{display:block;font-size:13px;font-weight:600;color:var(--tx)}
+  /* 설명이 1줄이든 2줄이든 카드 높이가 어긋나지 않게 두 줄 높이를 확보한다 */
+  .opt.haspv .desc{display:block;font-size:11px;color:var(--tx3);margin-top:3px;
+    line-height:1.4;min-height:2.8em}
+  .wiz-note{font-size:12px;color:var(--tx3);margin-top:10px}
+
+  /* 레퍼런스 룩도 가이드 카드와 같은 최소 폭·자동 열 규칙을 쓴다. */
+  .preset-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+    gap:var(--sp3);align-items:stretch;margin-bottom:8px}
+  .preset-card{background:var(--panel2);border:0;border-radius:var(--r2);overflow:hidden;
+    cursor:pointer;padding:0;text-align:left;font-family:inherit;transition:.15s}
+  .preset-card>img,.preset-card>.pv{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;
+    border:0;border-bottom:1px solid var(--line);border-radius:0}
+  .preset-card>.pv img{width:100%;height:100%;object-fit:cover;display:block}
+  .preset-card span.preset-name{display:block;padding:9px 11px 2px;font-size:12px;color:var(--tx);font-weight:600}
+  /* 버튼 내부에서는 -webkit-line-clamp 가 무시되므로(Chrome 이 자식 display 를 flow-root 로
+     강제한다) 정확히 두 줄 높이로 고정해 줄 중간이 잘리는 것을 막는다 */
+  .preset-card small{display:block;padding:0 11px;margin-bottom:10px;font-size:11px;
+    color:var(--tx3);line-height:1.4;height:2.8em;overflow:hidden}
+
+  .toolbar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+  .toolbar input{flex:1;min-width:200px;background:var(--s1);border:1px solid transparent;
+    color:var(--tx);padding:11px 14px;border-radius:12px;font-size:13px;font-family:inherit}
+  .toolbar input:focus{outline:none;border-color:var(--acc2)}
+  .switch{display:flex;background:var(--s1);border:0;border-radius:var(--r1);padding:3px;gap:2px}
+  .switch button{border:none;background:none;color:var(--tx3);padding:7px 13px;border-radius:8px;
+    cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;transition:.13s;white-space:nowrap}
+  .switch button.on{background:var(--s2);color:var(--tx)}
+
+  /* overflow:visible — 확대된 미리보기가 잘리지 않도록 */
+  /* 섹션은 표면을 갖지 않는다 — 구분은 구분선과 여백이 한다.
+     화면에서 배경을 가진 것은 사진 카드와 프롬프트 상자뿐이어야 한다. */
+  section{background:none;border:0;border-top:1px solid var(--hair);border-radius:0;margin-bottom:0}
+  section:first-of-type{border-top:0}
+  section.hide{display:none}
+  .sec-head{display:flex;align-items:center;gap:10px;padding:var(--sp4) 0;cursor:pointer;user-select:none;
+    width:100%;background:none;border:none;font-family:inherit;text-align:left;color:inherit;
+    border-radius:var(--r1)}
+  .sec-head:hover{background:var(--s1)}
+  .sec-title{font-weight:600;font-size:15px;flex:1}
+  .sec-title em{font-style:normal;color:var(--tx3);font-weight:400;font-size:12px;margin-left:8px}
+  .badge{background:var(--s2);box-shadow:none;
+    color:var(--tx2);font-size:11px;font-weight:700;padding:2px 8px;
+    border-radius:12px;min-width:20px;text-align:center}
+  .badge.off{background:none;color:var(--tx3)}
+  .muted-tag{font-size:11px;font-weight:700;color:var(--on-acc);background:var(--tx3);
+    padding:2px 7px;border-radius:8px;white-space:nowrap}
+  section.muted .sec-title,section.muted .badge{opacity:.5}
+  section.open .arrow{transform:rotate(90deg)}
+  .sec-body{display:none;padding:0 0 var(--sp5)}
+  section.open .sec-body{display:block}
+  .scope-note{background:rgba(125,211,252,.08);border:1px solid rgba(125,211,252,.25);border-radius:8px;
+    padding:9px 12px;margin-top:12px;font-size:12px;color:var(--acc2)}
+  .scope-note button{background:none;border:1px solid var(--acc2);color:var(--acc2);border-radius:8px;
+    padding:3px 9px;margin-left:8px;cursor:pointer;font-family:inherit;font-size:11px}
+  .grp{margin-top:14px} .grp:first-child{margin-top:4px} .grp.hide{display:none}
+  .grp-label{font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;
+    margin-bottom:9px;font-weight:600}
+  .grp-label u{text-decoration:none;color:var(--tx4);font-size:11px;margin-left:6px;text-transform:none;letter-spacing:0}
+  .grp-label i{font-style:normal;color:var(--acc2);font-size:11px;margin-left:6px;
+    text-transform:none;letter-spacing:0;opacity:.75}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 12px;
+    cursor:pointer;transition:.12s;text-align:left;font-family:inherit;color:var(--tx);max-width:100%}
+  .chip.hide{display:none}
+  .chip:hover{border-color:var(--hair-strong);background:var(--s2)}
+  .chip.on{background:rgba(255,180,84,.13);
+    background:color-mix(in srgb,var(--acc) 13%,transparent);border-color:var(--acc)}
+  .chip .kr{font-size:13px;font-weight:500;display:block}
+  .chip.on .kr{color:var(--acc-text)}
+  .chip .desc{font-size:11px;color:var(--tx3);display:block;margin-top:2px}
+  /* 미리보기가 있는 그룹은 카드 격자 — 이미지가 위, 이름·설명이 아래 */
+  .chips.pvgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+    gap:var(--sp3);align-items:stretch}
+  /* 도식 그룹 — 손으로 그린 단순한 그림이라 사진처럼 크게 볼 것이 없다.
+     변을 절반으로(면적 1/4) 줄여 한 줄에 두 배가 들어가게 한다.
+     비율은 16:9 그대로 두어야 화각·프레이밍 도식의 프레임 가장자리가 유지된다. */
+  .chips.pvgrid.minigrid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
+  .minigrid .txt{padding:3px 6px;border-radius:5px}
+  .minigrid .kr{font-size:12px}
+  .minigrid .chip.haspv.on::after{width:16px;height:16px;top:6px;right:6px;
+    font-size:10px;line-height:16px}
+  .chips.pvgrid .chip{width:100%}
+  .chip.haspv{display:flex;flex-direction:column;padding:0;position:relative;
+    overflow:visible;text-align:left}
+  /* .chip.haspv 와 특이도가 같아 순서에 밀리므로, 숨김 규칙을 더 강하게 다시 선언한다 */
+  .chip.hide,.chip.haspv.hide{display:none}
+  .chip.haspv .txt{padding:8px 11px 10px;min-width:0}
+  .chip.haspv .desc{display:block;margin-top:3px;line-height:1.4;min-height:2.8em}
+  .pv{width:100%;aspect-ratio:16/9;background:var(--bg);display:block;
+    border:none;border-bottom:1px solid var(--line);border-radius:8px 8px 0 0;overflow:hidden}
+  .pv svg{width:100%;height:100%;display:block}
+  .pv img{width:100%;height:100%;object-fit:cover;display:block}
+  .pv.sw{border-color:var(--hair-strong)}
+  /* 카드 이미지는 확대하지 않는다. 호버·키보드 포커스에서는 설명 툴팁만 보여준다.
+     사진 카드의 호버·선택 표시는 아래 '선택 표시' 절에서 카드 바깥 링으로 처리한다. */
+  /* ── 카드 오버레이 ──
+     예시 사진도 도식도 그 자체가 답이므로, 카드를 그림으로 꽉 채우고 이름만 얹는다.
+     원본과 같은 16:9 비율이라 잘려나가는 부분이 없다. 화각·구도를 나타내는 도식은
+     프레임 가장자리가 곧 정보인데, 비율을 그대로 두었으므로 그 정보가 유지된다.
+     설명은 호버·키보드 포커스 시 별도 툴팁으로 보여준다. */
+  /* 테두리를 없애고 사진만 남긴다. 격자에서 카드를 나누는 것은 선이 아니라 간격이다. */
+  .opt.haspv,.chip.haspv,.preset-card{position:relative;overflow:hidden;
+    background:var(--s0);border:0;border-radius:var(--r2)}
+  .opt.haspv .pv,.chip.haspv .pv{aspect-ratio:16/9;border-bottom:0;border-radius:0}
+  /* 이름표는 글자 크기만큼만 검정 50% 를 깐다.
+     그라데이션으로 아래쪽을 통째로 덮으면 사진의 어두운 부분까지 같이 죽는다.
+     absolute 에 left 만 주고 right:auto 로 두면 글자 폭에 맞춰 줄어든다. */
+  .opt.haspv .txt,.chip.haspv .txt{position:absolute;left:var(--sp2);right:auto;bottom:var(--sp2);
+    z-index:3;max-width:calc(100% - var(--sp4));
+    padding:4px 8px;border-radius:6px;background:rgba(0,0,0,.5)}
+  .opt.haspv .kr,.chip.haspv .kr{display:block;color:#fff;font-size:13px;font-weight:600;
+    text-shadow:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* 선택돼도 이름은 흰색 그대로 둔다 — 링과 체크가 이미 상태를 말하고 있다 */
+  .opt.haspv .desc,.chip.haspv .desc{display:none}
+  .opt.haspv.on,.chip.haspv.on{background:var(--s0)}
+
+  .preset-card>img,.preset-card>.pv{border-bottom:0;border-radius:0}
+  .preset-card span.preset-name{position:absolute;left:var(--sp2);right:auto;bottom:var(--sp2);
+    z-index:3;display:inline-block;max-width:calc(100% - var(--sp4));
+    padding:4px 8px;border-radius:6px;background:rgba(0,0,0,.5);
+    color:#fff;font-size:12px;font-weight:600;text-shadow:none;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .preset-card small{display:none}
+
+  .empty{color:var(--tx3);font-size:13px;padding:14px 0}
+
+  .out{position:fixed;top:0;bottom:0;right:0;width:var(--rail);background:var(--s0);
+    border-left:1px solid var(--hair);box-shadow:-20px 0 40px rgba(0,0,0,.22)}
+  .mobile-out-bar,.mobile-out-head{display:none}
+  .selsum{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:9px;max-height:60px;overflow-y:auto}
+  .tag{background:var(--panel2);border:1px solid var(--line);color:var(--tx2);border-radius:14px;
+    padding:4px 9px;font-size:11px;font-family:inherit;cursor:pointer;transition:.13s;white-space:nowrap}
+  .tag:hover{border-color:var(--danger-line);color:var(--danger)}
+  .tag.off{opacity:.45;text-decoration:line-through}
+  .tag i{font-style:normal;margin-left:5px;opacity:.75}
+  .tag-empty{font-size:11px;color:var(--tx3)}
+  .scope{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:9px}
+  .scope-lab{font-size:11px;color:var(--tx3);font-weight:600;margin-right:2px}
+  .sc{border:1px solid var(--line);background:transparent;color:var(--tx3);padding:5px 11px;
+    border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;transition:.13s}
+  /* 포함 = 기본 상태이므로 조용하게, 제외 = 기본에서 벗어난 상태이므로 눈에 띄게 */
+  .sc.on{background:var(--s2);border-color:transparent;color:var(--tx);font-weight:600}
+  .sc.on:hover{border-color:var(--hair-strong)}
+  .sc:not(.on):not(.quick){border-style:dashed;border-color:var(--warn-line);color:var(--warn);
+    text-decoration:line-through}
+  .sc.quick{color:var(--tx2)}
+  .sc.quick:hover{color:var(--acc2);border-color:var(--acc2)}
+  .divider{width:1px;height:18px;background:var(--line);margin:0 4px}
+  .warns{display:none;font-size:12px;color:var(--warn);line-height:1.55;margin-bottom:8px;
+    max-height:76px;overflow-y:auto}
+  .warns.show{display:block}
+  .warns div::before{content:"⚠ "}
+  .warns div.info{color:var(--acc2)} .warns div.info::before{content:"↩ "}
+  .warns div.ok{color:var(--ok)} .warns div.ok::before{content:"✓ "}
+  .warns div.ok b{color:var(--ok)}
+  /* 충돌로 자동 해제된 항목 — 경고(노랑)가 아니라 '처리했음'을 알리는 안내 */
+  .warns div.swap{color:var(--tx2)} .warns div.swap::before{content:"⇄ "}
+  .warns div.swap b{color:var(--tx)}
+  .warns .applied{color:var(--tx2);font-size:11px}
+  .out-lab i.lw{font-style:normal;color:var(--warn);margin-left:8px;font-weight:600}
+  .out-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .out-lab{font-size:12px;color:var(--tx3);font-weight:600;flex:1}
+  .out-lab b{color:var(--acc2);font-weight:600}
+  .out-lab span{color:var(--tx2);font-weight:500;margin-left:6px}
+  button.act{display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    border:1px solid var(--line);background:var(--panel2);color:var(--tx2);padding:7px 14px;
+    border-radius:var(--r1);cursor:pointer;font-size:12px;font-family:inherit;transition:.15s}
+  button.act:hover{border-color:var(--hair-strong);color:var(--tx)}
+  button.act:disabled{opacity:.3;cursor:not-allowed}
+  button.copy{background:var(--acc);border-color:var(--acc);color:var(--on-acc);font-weight:700}
+  #resetBtn{color:var(--tx3)}
+  #resetBtn:hover{border-color:var(--danger-line);color:var(--danger)}
+  button.copy.done{background:var(--ok);border-color:var(--ok)}
+  #prompt{width:100%;height:96px;resize:vertical;background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;color:var(--tx);padding:12px 14px;font-size:13px;line-height:1.6;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  #prompt:focus{outline:none;border-color:var(--acc2)}
+
+  /* ── 화면 레이아웃 ── 데스크톱은 좌측 선택 작업 영역 + 우측 고정 결과 레일.
+     1040px 미만은 아래 모바일 규칙에서 한 열 + 하단 결과 바로 바꾼다. */
+  :root{--rail:420px;--railpad:var(--sp4);--cardr:var(--r2)}
+  .wrap{max-width:none;min-height:100vh;margin:0 var(--rail) 0 0;padding:18px 26px 40px}
+
+  /* 헤더 아래 구분선 — 제품명과 작업 영역을 나눈다 */
+  header{padding-bottom:var(--sp4);border-bottom:1px solid var(--hair)}
+
+  /* ── 좌측 작업 영역 ── */
+  .wiz{padding:var(--sp2) 0 0}
+  .wiz-step{margin-bottom:20px}
+  .wiz-q{margin-bottom:12px}
+  .chips.pvgrid,.opts.pvgrid{gap:14px}
+  .preset-row{gap:14px}
+  .sec-head{min-height:52px;padding:var(--sp4) 0}
+  section.muted{border-top-color:var(--hair-strong)}
+  section.muted .sec-title,section.muted .badge{opacity:.68}
+  section.muted .muted-tag{background:var(--warn);color:var(--on-acc)}
+
+  /* 직접 선택 시 검색 도구를 화면 위에 유지해 긴 목록 탐색을 빠르게 한다. */
+  /* 검색 도구는 스크롤을 따라 붙어 있어야 하므로 배경이 필요하다.
+     다만 상자로 띄우지 않고, 아래쪽 구분선만 두어 목록의 머리처럼 보이게 한다. */
+  #pane-manual .toolbar{position:sticky;top:0;z-index:18;padding:var(--sp3) 0;margin:0 0 var(--sp2);
+    background:color-mix(in srgb,var(--s0) 94%,transparent);border:0;
+    border-bottom:1px solid var(--hair);border-radius:0;backdrop-filter:blur(12px)}
+
+  /* ── 선택 표시 ──
+     예전에는 배경틴트·테두리·내부링·글자색·"✓ 선택됨" 라벨이 한꺼번에 켜졌다.
+     신호가 다섯이면 격자 전체가 시끄러워지고 정작 무엇이 선택됐는지 흐려진다.
+     사진 카드는 바깥 링과 체크 원 둘만 쓴다.
+     사진이 없는 글자 칩은 면이 비어 있어 단서가 필요하므로 테두리·틴트를 남긴다. */
+  .opt.on:not(.haspv),.chip.on:not(.haspv){box-shadow:inset 0 0 0 1px var(--acc)}
+  .opt.haspv,.chip.haspv,.preset-card{position:relative}
+  .opt.haspv:hover,.chip.haspv:hover,.preset-card:hover{
+    box-shadow:0 0 0 1px var(--hair-strong)}
+  .opt.haspv.on,.chip.haspv.on,.preset-card.sel,
+  .opt.haspv.on:hover,.chip.haspv.on:hover,.preset-card.sel:hover{
+    box-shadow:0 0 0 2px var(--acc)}
+  .opt.haspv.on::after,.chip.haspv.on::after,.preset-card.sel::after{
+    content:"✓";position:absolute;top:8px;right:8px;z-index:6;
+    width:18px;height:18px;border-radius:50%;background:var(--acc);color:var(--on-acc);
+    font-size:11px;font-weight:700;line-height:18px;text-align:center;
+    box-shadow:0 2px 6px rgba(0,0,0,.45)}
+  /* 선택된 카드는 호버 때 보이던 설명을 카드 안쪽 상단에 계속 표시한다.
+     모바일에는 호버가 없으므로 선택 결과를 즉시 이해하는 단서이기도 하다. */
+  .opt.haspv.on[data-tip]::before,.chip.haspv.on[data-tip]::before,
+  .preset-card.sel[data-tip]::before{
+    content:attr(data-tip);position:absolute;z-index:5;top:10px;left:50%;
+    transform:translateX(-50%);width:max-content;max-width:calc(100% - 20px);
+    padding:9px 11px;border:1px solid var(--hair-strong);border-radius:var(--r1);
+    background:var(--s2);box-shadow:var(--e3);color:var(--tx2);
+    font-size:12px;font-weight:400;line-height:1.5;text-align:left;white-space:normal;
+    pointer-events:none}
+  .tag.off{opacity:.78;text-decoration:line-through;border-style:dashed;color:var(--warn)}
+
+  /* ── 우측 결과 레일 ── 하단 고정 패널을 우측 레일로 바꿔 작업 영역을 가리지 않는다. */
+  .out-in{height:100%;padding:var(--railpad);
+    display:flex;flex-direction:column;gap:var(--sp5);
+    overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--hair-strong) transparent}
+  .out-in::-webkit-scrollbar{width:10px}
+  .out-in::-webkit-scrollbar-track{background:transparent}
+  .out-in::-webkit-scrollbar-thumb{background:var(--hair-strong);border-radius:var(--r1);
+    border:3px solid var(--bg)}
+
+  /* 레일 안에서 표면을 갖는 것은 프롬프트 상자 하나뿐이다.
+     나머지 네 블록은 배경·테두리를 벗고 라벨과 여백으로만 구분한다.
+     상자 일곱 개가 같은 무게로 쌓여 있던 것을 푼 것이다. */
+  .out .subject-box,.out .profile,.out-in>.selsum-box{
+    flex:0 0 auto;width:100%;max-width:none;margin:0;padding:0;
+    background:none;border:0;border-radius:0}
+  /* 블록의 머리 — 이름표가 곧 구분선 역할을 한다 */
+  .out .subject-box .field-lab,.out .profile-head-t{
+    font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--tx3)}
+  .out .subject-box .field-lab .ic,.out .profile-head .ic,.selsum-head .ic{
+    width:14px;height:14px;color:var(--tx3)}
+
+  /* 1번 — 라벨 줄과 입력 줄로 나눈 하나의 필드 */
+  .out .subject-box{display:flex;flex-wrap:wrap;align-items:center;gap:0 8px}
+  .out .subject-box .field-lab{display:flex;align-items:center;gap:6px;flex:1 1 auto;min-width:0;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* 이 값이 없으면 프롬프트가 만들어지지 않는 앱(I2V)에서 그 사실을 드러낸다 */
+  .out .subject-box .field-lab em{font-style:normal;margin-left:6px;padding:1px 5px;
+    border-radius:8px;font-size:11px;font-weight:700;
+    background:rgba(245,196,81,.16);color:var(--warn)}
+  /* 블록에 테두리가 없어졌으므로 '필수 입력이 비었다'는 신호는 입력칸이 진다 */
+  .out .subject-box.need .field-lab{color:var(--warn)}
+  .out .subject-box.need input{border-color:var(--warn-line);background:var(--warn-bg)}
+  .out .subject-box.need input:focus{border-color:var(--acc2)}
+  .out .subject-box input{flex:1 0 100%;height:auto;margin-top:var(--sp2);padding:10px 11px;
+    background:var(--s1);border-color:transparent;border-radius:var(--r1);font-size:13px}
+  .out .subject-box input:hover{border-color:var(--hair)}
+
+  /* 2번 — 펼친 상태에서는 헤더 요약이 아래 컨트롤과 중복되므로 감춘다 */
+  .out .profile{overflow:visible;padding:0}
+  .out .profile.open{position:static;right:auto;box-shadow:none}
+  .out .profile-head{min-height:0;padding:0 0 var(--sp2);gap:var(--sp2);border-radius:0}
+  .out .profile-head:hover{background:none;color:var(--tx2)}
+  .out .profile.open .profile-head{border-radius:0}
+  .out .profile.open .profile-head-s{display:none}
+  .out .profile-body{padding:0}
+  .out .profile-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--sp2);align-items:end}
+  .out .profile-label{font-size:11px;margin-bottom:5px}
+  .out .seg{height:34px;min-height:34px}
+  .out .seg{padding:3px}
+  .out .seg button{padding:0 6px;font-size:11px;line-height:26px}
+  .out .mode-help{margin-top:var(--sp2);padding-top:0;border-top:0;
+    font-size:11px;line-height:1.5}
+
+  /* ── 출력 범위 ── 출력 설정과 현재 선택 사이에서 결과에 포함할 범위를 정한다.
+     섹션 하나하나를 켜고 끄는 눈 아이콘은 직접 선택의 각 섹션 머리에 그대로 둔다. */
+  .out-in>.scope{display:flex;flex:0 0 auto;flex-wrap:wrap;align-items:center;
+    width:100%;gap:var(--sp1);margin:0;padding:0}
+  .out-in>.scope .scope-lab{flex:1 0 100%;margin:0 0 var(--sp1);
+    font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--tx3)}
+  .out-in>.scope .divider{display:block;width:1px;height:16px;margin:0 var(--sp2);
+    background:var(--hair)}
+  .out-in>.scope .sc{display:inline-flex;align-items:center;gap:6px;
+    padding:5px 9px;border-radius:var(--r1);font-size:11px}
+  /* 가이드·룩 탭에서는 섹션이 보이지 않으므로, 무엇이 빠졌는지 여기서 알린다 */
+  .scope-off{display:none;flex:1 0 100%;margin:var(--sp1) 0 0;font-size:11px;color:var(--warn)}
+  .scope-off.show{display:inline}
+  .scope-off::before{content:"⊘ "}
+
+  /* ── 섹션 머리 ── 펼치기 버튼과 출력 토글을 나란히 둔다.
+     (버튼 안에 버튼을 넣을 수 없어 형제로 배치한다) */
+  .sec-bar{display:flex;align-items:center;gap:var(--sp2)}
+  .sec-bar .sec-head{flex:1;min-width:0}
+  .sec-ic{color:var(--tx3);margin-right:var(--sp1)}
+  section.open .sec-ic{color:var(--tx2)}
+  .sec-scope{flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+    width:32px;height:32px;padding:0;border:1px solid transparent;border-radius:var(--r1);
+    background:none;color:var(--tx3);cursor:pointer;transition:.13s}
+  .sec-scope:hover{background:var(--s1);color:var(--tx2)}
+  .sec-scope:focus-visible{outline:2px solid var(--acc2);outline-offset:-2px}
+  .sec-scope .ic-off{display:none}
+  .sec-scope:not(.on){color:var(--warn);border-color:var(--warn-line);border-style:dashed}
+  .sec-scope:not(.on) .ic-on{display:none}
+  .sec-scope:not(.on) .ic-off{display:inline-block}
+
+  /* ── 현재 선택 ── 기본은 개수만. 왼쪽에서 이미 칩이 켜져 있고 섹션마다 개수 뱃지가
+     있으므로, 레일에서 124px 를 상시로 쓸 이유가 없다. 개별 해제가 필요할 때만 편다. */
+  .selsum-head{display:flex;align-items:center;gap:var(--sp2);width:100%;padding:0;
+    background:none;border:0;cursor:pointer;font-family:inherit;text-align:left;color:inherit}
+  .selsum-head:hover .selsum-t{color:var(--tx2)}
+  .selsum-head:focus-visible{outline:2px solid var(--acc2);outline-offset:2px}
+  .selsum-t{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--tx3)}
+  .selsum-n{margin-left:auto;font-size:11px;color:var(--tx2)}
+  .selsum-box.open .selsum-head .arrow{transform:rotate(90deg)}
+  .out-in>.selsum-box{flex:0 0 auto}
+  .out-in>.selsum-box>.selsum{display:none}
+  .out-in>.selsum-box.open>.selsum{display:flex;flex-wrap:wrap;gap:var(--sp1);
+    margin:var(--sp2) 0 0;max-height:150px;overflow-y:auto;scrollbar-width:thin}
+  .out .tag{padding:4px 8px;font-size:11px}
+  .out .tag-empty{padding:1px 0}
+
+  /* 결과 헤더 — 라벨 한 줄, 동작 버튼 한 줄. 복사는 폭을 넓혀 주동작으로 둔다 */
+  /* 결과 블록만 여백을 좁혀 라벨·버튼·프롬프트가 한 덩어리로 읽히게 한다 */
+  .out-in>.out-top{flex-wrap:wrap;align-items:center;gap:var(--sp2);margin:0 0 calc(var(--sp5) * -1 + var(--sp2))}
+  .out .out-lab{flex:1 1 100%;min-width:0;
+    font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--tx3);line-height:1.45}
+  .out .out-lab>span{display:none}
+  .out .out-lab b{color:var(--tx);font-weight:700}
+  .out-in>.out-top button.act{flex:1 1 0;min-height:34px;padding:0 9px;font-size:12px}
+  .out-in>.out-top button.copy{flex:1.7 1 0}
+
+  /* 레일에서 유일하게 표면을 갖는 요소 — 이 도구의 결과물이므로 혼자 떠 있어야 한다 */
+  .out-in>#prompt{flex:1 1 auto;height:auto;min-height:180px;resize:none;
+    background:var(--s1);border:1px solid var(--hair);border-radius:var(--r2);
+    padding:var(--sp3);font-size:12px;line-height:1.65;word-break:normal}
+
+  .out-in>.warns{flex:0 0 auto;margin:0;max-height:106px;overflow-y:auto;scrollbar-width:thin;
+    padding:10px 11px;background:var(--warn-bg);
+    border:1px solid rgba(245,196,81,.2);border-radius:var(--r2)}
+
+  /* ── 화면 테마 ── 결과와 무관한 개인 환경 설정이라 레일의 마지막에 조용히 둔다. */
+  .theme-switch{display:flex;flex:0 0 auto;align-items:center;gap:var(--sp3);
+    width:100%;padding-top:var(--sp2);border-top:1px solid var(--hair)}
+  .theme-label{margin-right:auto;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--tx3)}
+  .theme-options{display:flex;align-items:center;gap:var(--sp1)}
+  .theme-option{display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    min-height:32px;padding:0 9px;border:1px solid transparent;border-radius:var(--r1);
+    background:none;color:var(--tx3);font:inherit;font-size:11px;cursor:pointer;transition:.15s}
+  .theme-option:hover{color:var(--tx);border-color:var(--hair)}
+  .theme-option[aria-pressed="true"]{background:var(--s2);border-color:var(--hair-strong);
+    color:var(--tx);font-weight:700}
+  .theme-option:focus-visible{outline:2px solid var(--acc2);outline-offset:2px}
+  .theme-option .ic{width:14px;height:14px}
+
+  /* ── 카드 설명 툴팁 ── 이미지는 카드의 기본 크기로 충분하므로 확대하지 않고,
+     감춰 둔 설명만 짧은 지연 뒤 카드 안쪽 상단 중앙에 보여준다. */
+  #pvtooltip{position:fixed;z-index:60;display:none;pointer-events:none;width:max-content;
+    max-width:min(280px,calc(100vw - 24px));padding:9px 11px;
+    background:var(--s2);border:1px solid var(--hair-strong);border-radius:var(--r1);
+    box-shadow:var(--e3);color:var(--tx2);
+    font-size:12px;line-height:1.5;opacity:0;transition:opacity .1s}
+  #pvtooltip.show{display:block;opacity:1}
+
+  /* ── 좁은 데스크톱 ── 노트북, 창을 반만 쓰는 경우, 브라우저 확대를 키운 경우.
+     레일을 줄여 좌측 작업 영역을 지킨다(1100px 에서 사진 카드 2열 × 341px). */
+  @media(max-width:1279px){
+    :root{--rail:360px;--railpad:var(--sp3)}
+    .wrap{padding:16px 22px 32px}
+    header{gap:var(--sp2) var(--sp4)}
+    .modetab{padding:var(--sp3) 13px}
+  }
+
+  /* ── 넓은 모니터 ── 레일과 카드를 함께 키워 여백만 늘어나지 않게 한다 */
+  @media(min-width:1680px){
+    :root{--rail:480px;--railpad:18px}
+    .wrap{padding:22px 34px 48px}
+    .chips.pvgrid,.opts.pvgrid,.preset-row{grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:var(--sp4)}
+    .chips.pvgrid.minigrid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+    .preset-row{gap:var(--sp4)}
+    .wiz{padding:var(--sp3) 0 0}
+    .sec-head{padding:var(--sp4) 0}
+    .out .subject-box input{padding:11px 12px;font-size:13px}
+    .out .seg{height:36px;min-height:36px}
+    .out .seg button{line-height:28px}
+    .out-in>#prompt{padding:15px;font-size:13px}
+  }
+  /* 초광폭 — 작업 영역이 한없이 늘어나면 탭과 헤더가 늘어져 보이므로 폭을 묶고
+     남는 좌우 공간은 여백으로 나눈다. 레일 오른쪽 정렬은 그대로 유지된다. */
+  @media(min-width:2100px){
+    :root{--rail:560px}
+    .wrap{--gutter:max(40px,(100vw - var(--rail) - 1700px)/2);
+      padding:24px var(--gutter) 56px}
+    .chips.pvgrid,.opts.pvgrid,.preset-row{grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:18px}
+    .chips.pvgrid.minigrid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+    .preset-row{gap:18px}
+    .out-in>#prompt{font-size:13px}
+  }
+
+  /* 세로가 넉넉한 화면 — 빈 프롬프트 상자를 무한히 늘리는 대신 선택 목록을 더 보여준다 */
+  @media(min-height:1000px){
+    .out-in>.selsum-box.open>.selsum{max-height:280px}
+    .out-in>#prompt{max-height:440px}
+  }
+
+  /* 세로 여유가 없는 창(노트북 대부분) — 여백과 보조 설명을 좁혀 스크롤을 없앤다 */
+  @media(max-height:940px){
+    .out-in{padding:var(--sp3);gap:var(--sp4)}
+    .out .subject-box{padding:0}
+    .out .subject-box input{margin-top:var(--sp1);padding:9px 10px}
+    .out .profile-head{padding:0 0 var(--sp1)}
+    .out .profile-body{padding:0}
+    /* 보조 설명은 지우지 않고 촘촘하게 — 처음 쓰는 사람에게 필요한 내용이다 */
+    .out .mode-help{margin-top:var(--sp1);padding-top:0;font-size:11px;line-height:1.45}
+    .out-in>.selsum-box.open>.selsum{max-height:110px}
+    .out-in>.warns{max-height:80px}
+  }
+
+  /* 세로가 아주 짧은 창 — 보조 설명을 접고 결과 영역 최소 높이를 낮춘다 */
+  @media(max-height:800px){
+    .out .mode-help{display:none}
+    .out-in>#prompt{min-height:150px}
+  }
+
+  /* ── 모바일·태블릿 ── 선택 화면은 한 열로, 결과 레일은 하단 축소 바로 바꾼다.
+     축소 바를 누르면 전체 화면으로 열리고 열린 패널의 상단 영역을 누르면 돌아온다. */
+  @media(max-width:1039px){
+    :root{--rail:100%;--railpad:var(--sp3)}
+    body{overflow-x:hidden;padding-bottom:72px}
+    body.mobile-out-open{overflow:hidden;padding-bottom:0}
+    .wrap{display:block;min-height:100vh;margin:0;padding:12px 14px 96px}
+    header{align-items:flex-start;gap:var(--sp3);padding-bottom:var(--sp3);margin-bottom:var(--sp3)}
+    .brand{flex:1 1 100%;width:100%;gap:10px}
+    .brand-ic{width:38px;height:38px}
+    header h1{font-size:18px}
+    .sub{font-size:11px}
+    .builder-menu{min-width:min(300px,calc(100vw - 28px))}
+    .modetabs{flex:1 1 100%;width:100%;overflow-x:auto}
+    .modetab{flex:1 1 0;min-width:0;padding:10px 6px;font-size:12px;gap:5px}
+    .modetab .ic{width:17px;height:17px}
+    .wiz{padding-top:0}
+    .wiz-q{font-size:14px}
+    .opts.pvgrid,.chips.pvgrid{grid-template-columns:minmax(0,1fr);gap:10px}
+    .chips.pvgrid.minigrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp2)}
+    .preset-row{grid-template-columns:minmax(0,1fr);gap:10px}
+    #pane-manual .toolbar{padding:var(--sp2) 0}
+    .toolbar input{flex:1 1 100%;min-width:0}
+    .switch{width:100%}
+    .switch button{flex:1;min-height:40px}
+    .sec-head{min-height:48px;padding:var(--sp3) 0}
+
+    .out{z-index:80;top:auto;left:0;right:0;bottom:0;width:100%;height:64px;
+      border:0;border-top:1px solid var(--hair);border-radius:var(--r3) var(--r3) 0 0;
+      box-shadow:0 -10px 30px rgba(0,0,0,.22)}
+    .mobile-out-bar{display:flex;align-items:center;gap:var(--sp3);width:100%;height:100%;
+      padding:8px 14px calc(8px + env(safe-area-inset-bottom));
+      border:0;background:var(--s1);border-radius:inherit;color:var(--tx);font:inherit;
+      text-align:left;cursor:pointer}
+    .mobile-out-bar:focus-visible{outline:2px solid var(--acc2);outline-offset:-4px}
+    .mobile-out-copy{display:flex;flex:1;min-width:0;flex-direction:column;line-height:1.35}
+    .mobile-out-copy b{font-size:13px}
+    .mobile-out-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+      color:var(--tx3);font-size:11px}
+    .mobile-out-bar>.ic{width:20px;height:20px;color:var(--tx2);transform:rotate(180deg)}
+    .out-in{display:none}
+
+    .out.mobile-open{display:flex;flex-direction:column;top:0;height:100vh;height:100dvh;
+      border-radius:0;border-top:0;box-shadow:none}
+    .out.mobile-open .mobile-out-bar{display:none}
+    .out.mobile-open .mobile-out-head{display:flex;flex:0 0 auto;align-items:center;
+      width:100%;min-height:58px;padding:8px 14px;border:0;border-bottom:1px solid var(--hair);
+      background:var(--s0);color:var(--tx);font:inherit;text-align:left;cursor:pointer}
+    .mobile-out-head:focus-visible{outline:2px solid var(--acc2);outline-offset:-4px}
+    .mobile-out-title{display:flex;flex:1;min-width:0;flex-direction:column;line-height:1.35}
+    .mobile-out-title b{font-size:15px}
+    .mobile-out-title small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+      color:var(--tx3);font-size:11px}
+    .mobile-out-head>.ic{width:20px;height:20px;color:var(--tx2)}
+    .out.mobile-open .out-in{display:flex;flex:1 1 auto;height:auto;min-height:0;
+      padding:var(--sp3) var(--sp3) calc(var(--sp3) + env(safe-area-inset-bottom));
+      gap:var(--sp4);overflow-y:auto}
+    .out .profile-grid{grid-template-columns:minmax(0,1fr)}
+    .out .subject-box input{min-height:44px}
+    .out .profile-head{min-height:40px}
+    .out-in>.out-top{margin-bottom:calc(var(--sp4) * -1 + var(--sp2))}
+    .out-in>.out-top button.act{min-height:42px}
+    .out-in>#prompt{flex:0 0 auto;min-height:240px;max-height:none;font-size:13px}
+    .out-in>.selsum-box.open>.selsum{max-height:180px}
+    .theme-option{min-height:40px}
+    #pvtooltip{display:none !important}
+  }
+
+  /* 움직임을 줄이도록 설정한 사용자에게는 전환 효과를 끈다 */
+  @media(prefers-reduced-motion:reduce){
+    *,*::before,*::after{transition:none !important;animation:none !important}
+  }

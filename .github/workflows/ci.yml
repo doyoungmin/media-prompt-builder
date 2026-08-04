@@ -1,0 +1,17 @@
+# PR·push 마다 타입 검사와 빌드만 확인한다.
+# 배포는 Cloudflare Pages Git 연동이 담당하므로 여기서는 하지 않는다.
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
