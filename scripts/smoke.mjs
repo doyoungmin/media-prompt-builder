@@ -1,6 +1,7 @@
 /* 이식된 legacy.js 를 jsdom 에서 실행해 런타임 오류와 UI 생성 여부를 확인 */
 import { readFileSync } from "node:fs";
 import { JSDOM } from "jsdom";
+import { compose } from "./compose-engine.mjs";
 
 let fail = 0;
 for (const app of ["image", "t2v", "i2v"]) {
@@ -10,7 +11,7 @@ for (const app of ["image", "t2v", "i2v"]) {
   const errs = [];
   dom.window.addEventListener("error", e => errs.push(e.message));
   try {
-    dom.window.eval(readFileSync(`src/apps/${app}/legacy.js`, "utf-8"));
+    dom.window.eval(compose(app));
   } catch (e) { errs.push(String(e && e.stack || e).split("\n").slice(0,3).join(" | ")); }
   const d = dom.window.document;
   const counts = {

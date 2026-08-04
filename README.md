@@ -15,9 +15,13 @@ npm run build            # dist/ 생성
 ## 구조
 
 - `image/ t2v/ i2v/` — 앱별 HTML 엔트리 (경로 = 앱 식별자)
-- `src/shared/` — 3개 앱 공통 엔진 (CSS·테마·위저드·프롬프트 조립·SVG 프리뷰)
-- `src/apps/*/data.ts` — 앱별 옵션·프리셋 데이터 (여기만 고치면 옵션 수정 끝)
+- `src/shared/engine.js` — 3개 앱 공통 엔진 1벌 (위저드·프롬프트 조립·SVG 프리뷰·저장).
+  `/*==SLOT:n==*/` 위치에 앱별 코드가 빌드 시 삽입된다 (vite.config.ts 의 engine-compose 플러그인)
+- `src/apps/*/app.js` — 앱별 차이만 담은 코드 (CONFIG·프리셋·썸네일 맵). 옵션 수정은 여기서
 - `public/thumbs/` — 예시 사진 webp + `thumbs-map.json` (한글 키 → 파일명)
+
+수정 → 반영 흐름: 공통 수정은 engine.js 한 곳, 앱별 수정은 해당 app.js 한 곳만 고치면
+세 앱에 동시에 반영된다. `npm run test:smoke` 로 3개 앱 렌더 검증.
 
 ## 배포 (GitHub → Cloudflare Pages 자동)
 

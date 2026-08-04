@@ -1,2 +1,3 @@
-/* 엔트리: 이식된 원본 로직을 로드한다. 리팩터링이 진행되면 shared 모듈 조립으로 대체. */
-import "./legacy.js";
+/* 엔트리: 공통 엔진 + image 전용 코드가 빌드 시 조립된 모듈을 로드한다.
+   공통 로직 수정 → src/shared/engine.js, image 전용 수정 → src/apps/image/app.js */
+import "virtual:engine-image";
