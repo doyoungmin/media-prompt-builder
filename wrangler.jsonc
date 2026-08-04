@@ -1,0 +1,11 @@
+// Cloudflare Workers 배포 설정 — 빌드 산출물 dist/ 를 정적 에셋으로 서빙한다.
+// 대시보드의 배포 명령 `npx wrangler deploy` 가 이 파일을 읽는다.
+{
+  "name": "media-prompt-builder",
+  "compatibility_date": "2026-08-04",
+  "assets": {
+    "directory": "./dist",
+    // /image → /image/index.html 처럼 확장자 없는 경로를 자동 처리
+    "html_handling": "auto-trailing-slash"
+  }
+}
