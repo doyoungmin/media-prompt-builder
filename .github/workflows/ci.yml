@@ -9,9 +9,12 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 20, cache: npm }
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        # jsdom 30 이 요구하는 하한(^22.22.2)에 맞춘다. 20 에서는 jsdom 이 끌어오는
+        # undici 가 markAsUncloneable 을 못 찾아 스모크 테스트가 통째로 죽는다.
+        # package.json 의 engines 와 같이 움직여야 한다.
+        with: { node-version: 22, cache: npm }
       - run: npm ci
       - run: npm run typecheck
       - run: npm run build
