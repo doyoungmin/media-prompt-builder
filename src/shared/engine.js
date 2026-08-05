@@ -1115,22 +1115,22 @@ let sd={count:2, segs:["","",""], audio:"none", note:"", preserve:"strict"};
 const TEXT_CONFLICTS=[
   {re:/\b(wide|panoram\w*|landscape|vast|sweeping|establishing)\b/i,
    items:["익스트림 클로즈업","클로즈업","미디엄 클로즈업","100mm 매크로"],
-   msg:m=>`입력한 장면은 넓은 화면("${m}")인데 좁은 프레이밍이 선택돼 있어요`},
+   msg:m=>`넓은 장면인데 좁은 프레이밍 — 입력이 넓은 화면("${m}")입니다`},
   {re:/\b(close[- ]?up|macro|detail of|texture of)\b/i,
    items:["익스트림 와이드","와이드 / 풀샷","14mm 초광각","24mm 광각"],
-   msg:m=>`입력한 장면은 근접 촬영("${m}")인데 넓은 화각이 선택돼 있어요`},
+   msg:m=>`근접 촬영인데 넓은 화각 — 입력이 근접 촬영("${m}")입니다`},
   {re:/\b(night|midnight|dark|moonlit|nocturnal)\b/i,
    items:["골든아워","정오 하드광","데이라이트 WB"],
-   msg:m=>`입력한 장면은 밤("${m}")인데 낮 조명이 선택돼 있어요`},
+   msg:m=>`밤 장면인데 낮 조명 — 입력이 밤("${m}")입니다`},
   {re:/\b(daylight|sunny|noon|bright day|daytime)\b/i,
    items:["문라이트","블루아워","텅스텐 WB"],
-   msg:m=>`입력한 장면은 낮("${m}")인데 야간 조명이 선택돼 있어요`},
+   msg:m=>`낮 장면인데 야간 조명 — 입력이 낮("${m}")입니다`},
   {re:/\b(black[- ]and[- ]white|monochrome|b&w)\b/i,
    items:["틸 & 오렌지","네온 사이버펑크","파스텔","Technicolor"],
-   msg:m=>`입력이 흑백("${m}")인데 컬러 그레이딩이 선택돼 있어요`},
+   msg:m=>`흑백인데 컬러 그레이딩 — 입력이 흑백("${m}")입니다`},
   {re:/\b(still|motionless|frozen|standing perfectly still)\b/i,
    items:["역동적 움직임","FPV 드론","크래시 줌"],
-   msg:m=>`입력이 정지 상태("${m}")인데 격렬한 움직임이 선택돼 있어요`},
+   msg:m=>`정지 상태인데 격렬한 움직임 — 입력이 정지 상태("${m}")입니다`},
 ]
 // 이 변형에 존재하지 않는 항목만 가리키는 규칙은 절대 발화하지 않으므로 아예 뺀다
 .filter(r=>r.items.some(has));
@@ -1800,6 +1800,20 @@ function buildSdPanel(){
     if(s){ sd.segs[+s.dataset.sdSeg]=s.value; syncOutput(); queueSave(); return; }
     if(e.target.id==="sdNote"){ sd.note=e.target.value; syncOutput(); queueSave(); }
   });
+  /* 되돌리기 — 피사체 입력칸과 같은 방식으로 편집 전후를 한 단계로 묶는다.
+     구간 수 버튼만 pushHistory 하고 텍스트 입력은 빼먹어서, 같은 패널 안에서
+     되돌리기가 되는 것과 안 되는 것이 섞여 있었다.
+     입력칸은 drawSegs 가 다시 만들므로 위임(focusin/focusout)으로 받는다. */
+  const isSdText=el=>el && (el.matches("[data-sd-seg]") || el.id==="sdNote");
+  let sdEditSnapshot=null;
+  box.addEventListener("focusin",e=>{
+    if(isSdText(e.target)) sdEditSnapshot=snapshot();
+  });
+  box.addEventListener("focusout",e=>{
+    if(!isSdText(e.target) || !sdEditSnapshot) return;
+    if(snapshotKey(sdEditSnapshot)!==snapshotKey(snapshot())){ pushHistory(sdEditSnapshot); sync(); }
+    sdEditSnapshot=null;
+  });
   box.addEventListener("click",e=>{
     const c=e.target.closest("[data-sd-count]");
     if(c){ pushHistory(); sd.count=+c.dataset.sdCount; drawSegs(); sync(); return; }
@@ -1838,8 +1852,10 @@ OUT_NOTE.setAttribute("aria-live","polite");
    스크린리더가 같은 문장을 계속 읽는다. */
 function setNote(el, notes){
   const first=notes[0];
+  /* 한 줄에 들어가는 건 앞머리뿐이다. 문구는 '요약 — 자세히' 로 쓰고
+     여기서 앞머리만 떼어 쓴다(전체는 title 로 간다). */
   const text = first
-    ? first.t.split("\n")[0] + (notes.length>1 ? ` 외 ${notes.length-1}건` : "")
+    ? first.t.split("\n")[0].split(" — ")[0] + (notes.length>1 ? ` 외 ${notes.length-1}건` : "")
     : "";
   if(el.textContent!==text) el.textContent=text;
   const full=notes.map(n=>n.t).join("\n");
@@ -1958,7 +1974,7 @@ function syncOutput(){
      방금 한 동작의 결과(해제·교체) → 고쳐야 할 것(조합·길이) → 잘 됐다는 확인(적용됨).
      '적용됨'은 사용자가 방금 의도한 일이라 가장 덜 급하다 — 맨 뒤로 미룬다. */
   if(conflictNotice)
-    resultNotes.push({t:`${conflictNotice.kept}와(과) 함께 쓸 수 없어 자동 해제: ${conflictNotice.removed.join(" · ")}`,
+    resultNotes.push({t:`${conflictNotice.kept}와(과) 충돌 — 함께 쓸 수 없어 자동 해제: ${conflictNotice.removed.join(" · ")}`,
                       tone:"swap"});
   if(replacedNotice)
     resultNotes.push({t:"직접 조정한 선택이 교체되었습니다 — '되돌리기'로 복구할 수 있어요", tone:"info"});
@@ -2258,3 +2274,6 @@ function copyIt(){
 
 restoreState();
 sync();
+/* input[autofocus] 의 focus 이벤트는 이 스크립트가 실행되기 전에 이미 지나갔다.
+   그래서 페이지를 열자마자 한 첫 입력은 스냅샷이 없어 되돌릴 수 없었다. */
+if(document.activeElement===subjectEl) subjectEditSnapshot=snapshot();

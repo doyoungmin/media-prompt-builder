@@ -37,7 +37,7 @@ function boot(app) {
 }
 
 for (const app of ["t2v", "i2v"]) {
-  const { d, click, fill, out } = boot(app);
+  const { dom, d, click, fill, out } = boot(app);
   console.log(`\n──────── ${app}`);
 
   const models = [...d.querySelectorAll("[data-model]")].map(m => m.dataset.model);
@@ -107,6 +107,23 @@ for (const app of ["t2v", "i2v"]) {
   click('[data-sd-count="2"]');
   click("#undoBtn");
   bad(app, out() !== before, "되돌리기가 Seedance 입력을 복구하지 못함");
+
+  /* 구간 '텍스트' 편집도 한 단계로 잡혀야 한다 — 구간 수 버튼만 되고 텍스트는
+     빠져 있어서, 같은 패널 안에서 되돌리기가 되는 것과 안 되는 것이 섞여 있었다. */
+  const seg0 = d.querySelector('[data-sd-seg="0"]');
+  const kept = out();
+  const undoText = () => d.getElementById("undoCount").textContent;
+  const steps = () => +undoText().split("/")[0];
+  const beforeSteps = steps();
+  seg0.dispatchEvent(new dom.window.FocusEvent("focusin", { bubbles: true }));
+  fill('[data-sd-seg="0"]', "a completely different opening beat");
+  seg0.dispatchEvent(new dom.window.FocusEvent("focusout", { bubbles: true }));
+  bad(app, steps() !== beforeSteps + 1,
+      `구간 텍스트 편집이 되돌리기 단계로 안 잡힘 (${beforeSteps} → ${steps()})`);
+  click("#undoBtn");
+  bad(app, out() !== kept, "구간 텍스트 편집을 되돌리지 못함");
+  bad(app, d.querySelector('[data-sd-seg="0"]').value !== SEGS[app][0],
+      "되돌린 뒤 입력칸 값이 복구되지 않음");
 
   // 초기화
   click('[data-act="reset"]');
