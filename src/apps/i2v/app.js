@@ -36,6 +36,16 @@ const CONFIG = {
   subjectRequired:true,
   warnEmptySubject:'움직임 설명을 입력해야 프롬프트가 만들어집니다 — 항목 선택만으로는 나오지 않아요',
 
+  // Seedance 전용 입력 패널 (엔진이 만든다). 참조 이미지가 있으므로 유지 수준을 받는다
+  sd:{
+    preserve:true,
+    segHints:[
+      "처음에 무엇이 움직이나요?",
+      "그다음 무엇이 바뀌나요?",
+      "마지막에 어떻게 끝나나요?",
+    ],
+  },
+
   sections:["move","shot","tech"],
   order:["move","shot","tech"],
   short:{move:"모션",shot:"프레이밍",tech:"질감"},
@@ -162,11 +172,11 @@ const CONFIG = {
      help:"움직임과 연속성 유지 지시를 구조화된 문장으로 조합합니다.",
      guard:" Keep the subject, composition and lighting consistent with the reference image. Render the frame clean, without any text or watermarks.",
      limit:{short:110, detail:190}},
-    {key:"seedance", label:"Seedance (Doubao · 즉몽)", shortLabel:"Seedance",
-     help:"라벨 없는 한 문단 서술형. 첫 프레임 유지 → 움직임 → 카메라 → 마감 순서로 이어 씁니다.",
-     guard:" Keep the subject, composition and lighting consistent with the reference image, and render the frame clean, without any text or watermarks.",
-     // Seedance 는 50~150단어를 권장한다. I2V 는 장면 묘사가 이미지로 대체되어 더 짧다
-     limit:{short:95, detail:165}},
+    {key:"seedance", label:"Seedance 2.0", shortLabel:"Seedance",
+     help:"참조 이미지를 첫 프레임으로 두고, 시간 구간별 움직임과 오디오를 지시합니다.",
+     guard:" No on-screen text, watermark or camera UI overlay.",
+     // 장면 묘사를 이미지가 대신하므로 T2V 보다 짧다
+     limit:{short:110, detail:175}},
     {key:"generic", label:"범용 (Kling · Luma · Pika 등)", shortLabel:"범용",
      help:"짧은 키워드 나열형. 문장 해석이 약한 모델에 적합합니다.",
      guard:", keep the reference image style, clean frame without text or watermark",
@@ -176,18 +186,21 @@ const CONFIG = {
   build(model){
     const motion=subjectText();
     if(!motion) return "";        // 움직임 설명이 없으면 프롬프트를 만들지 않는다
-    /* T2V 와 같은 이유로 라벨 없이 문장 조각을 끊어 쓴다(t2v/app.js 주석 참고).
-       I2V 에서는 첫 프레임이 곧 참조 이미지이므로 그 사실을 맨 앞에 못박는다. */
+    /* T2V 와 같은 2.0 형식(t2v/app.js 주석 참고).
+       I2V 에서는 첫 프레임이 곧 참조 이미지이므로 그 사실과 '어디까지 유지할지'를 못박는다.
+       유지 수준은 사용자가 고른다 — 엄격히 묶으면 안전하지만 움직임이 죽는다. */
     if(model==="seedance"){
-      const frag=arr=>{ const t=listText(arr); return t ? cap(t)+"." : ""; };
-      return [
-        "Animate the reference image as the first frame.",
-        cap(motion.replace(/[.\s]+$/,""))+".",
-        frag(pick("move","shot")),
-        frag(items("tech")),
-        outputLength==="detail"
-          ? "The motion stays physically plausible and continuous from the first frame." : "",
-      ].filter(Boolean).join(" ");
+      const preserve = sd.preserve==="strict"
+        ? "Keep the subject identity, outfit, composition, lighting and visual style unchanged from the reference image."
+        : "Keep the subject clearly recognisable from the reference image; natural variation in pose and lighting is fine.";
+      return sdPrompt({
+        head: "Animate the reference image as the first frame. "+dot(cap(motion)),
+        camera: listText(pick("move","shot")),
+        style: listText(items("tech")),
+        keep: preserve+" One continuous shot, no new people, objects or scene changes."
+          +(outputLength==="detail"
+            ? " Keep the motion subtle and physically plausible throughout." : ""),
+      });
     }
     if(model==="generic"){
       const parts=["animate this image", motion];

@@ -1095,6 +1095,18 @@ let lastApplied=null;   // 가이드가 방금 적용한 내용 (안내용)
 let activePreset=null, subjectEditSnapshot=null;
 let conflictNotice=null;   // 충돌로 방금 자동 해제된 항목 (안내용)
 
+/* ── Seedance 2.0 전용 입력 ──
+   Seedance 2.0 은 '시간이 지나며 무엇이 변하는가'와 오디오를 함께 받을 때 제 성능이 난다
+   (1.0/1.5 는 무음·단일 숏이라 이 입력이 의미가 없다). 그 값들은 피사체 한 줄에서
+   만들어낼 수 없으므로 별도 입력으로 받는다. seedance 모델일 때만 화면에 나온다. */
+const SD_TIMES={2:["0-3s","3-6s"], 3:["0-3s","3-6s","6-10s"]};
+const SD_AUDIO={
+  none:    "silent, no sound design.",
+  ambient: "ambient sound that matches the scene. No dialogue.",
+  dialogue:"ambient sound that matches the scene, with natural dialogue.",
+};
+let sd={count:2, segs:["","",""], audio:"ambient", note:"", preserve:"strict"};
+
 /* 입력한 장면 묘사와 선택 항목이 정면으로 모순되는지 검사한다.
    예: "a wide shot of a mountain range" 라고 써놓고 익스트림 클로즈업을 고른 경우 */
 const TEXT_CONFLICTS=[
@@ -1627,6 +1639,7 @@ function snapshot(){
     manual:manualEdits,
     applied:lastApplied ? {...lastApplied,items:[...lastApplied.items]} : null,
     replaced:replacedNotice,
+    sd:{...sd, segs:[...sd.segs]},
   };
 }
 function normalizeSnapshot(sn){
@@ -1649,6 +1662,7 @@ function normalizeSnapshot(sn){
       why:sn.applied.why||"",
     } : null,
     replaced:!!sn.replaced,
+    sd:sn.sd ? {...sn.sd, segs:[...(sn.sd.segs||[])]} : null,
   };
 }
 function snapshotKey(sn){ return JSON.stringify(normalizeSnapshot(sn)); }
@@ -1683,6 +1697,7 @@ function undo(){
   lastApplied=sn.applied ? {...sn.applied,items:[...sn.applied.items]} : null;
   replacedNotice=sn.replaced;
   conflictNotice=null;
+  if(sn.sd){ sd={...sn.sd, segs:[...sn.sd.segs]}; redrawSd(); }
   syncWizUI();
   syncPresetUI();
   sync();
@@ -1714,13 +1729,15 @@ function pickWiz(key,opt){
 function reset(){
   const changed=DATA.some(s=>state[s.id].size>0)
     ||document.getElementById("subject").value.trim()
-    ||ORDER.some(id=>!scope[id]) || !guardOn || Object.keys(wizPick).length || activePreset;
+    ||ORDER.some(id=>!scope[id]) || !guardOn || Object.keys(wizPick).length || activePreset
+    ||sd.segs.some(t=>t.trim()) || sd.note.trim();
   if(changed) pushHistory();
   DATA.forEach(sec=>state[sec.id].clear());
   ORDER.forEach(id=>scope[id]=true);
   wizPick={}; syncWizUI();
   activePreset=null; syncPresetUI();
   document.getElementById("subject").value="";
+  sd={count:2, segs:["","",""], audio:"ambient", note:"", preserve:"strict"}; redrawSd();
   document.getElementById("search").value=""; query=""; openBeforeSearch=null;
   manualEdits=false; replacedNotice=false; lastApplied=null; conflictNotice=null;
   sync();
@@ -1741,6 +1758,79 @@ const LEN_SHORT=LEN_BTNS.find(b=>b.dataset.length==="short");
 const LEN_DETAIL=LEN_BTNS.find(b=>b.dataset.length==="detail");
 const MODEL_BTNS=[...document.querySelectorAll("[data-model]")];
 const SUBJECT_BOX=document.querySelector(".subject-box");
+
+/* ── Seedance 입력 패널 ──
+   엔트리 HTML 3벌에 같은 마크업을 복사해 두지 않도록 여기서 한 번만 만든다.
+   CONFIG.sd 가 없는 앱(이미지 빌더)에서는 아예 만들지 않는다. */
+const SD_BOX=CONFIG.sd ? buildSdPanel() : null;
+function buildSdPanel(){
+  const box=document.createElement("div");
+  box.className="sd-box"; box.id="sdBox"; box.hidden=true;
+  const seg=(label,name,opts)=>
+    `<span class="profile-label">${label}</span>`
+    +`<div class="seg" role="group" aria-label="${label}">`
+    +opts.map(([v,t])=>`<button data-sd-${name}="${v}">${t}</button>`).join("")
+    +`</div>`;
+  box.innerHTML=
+     seg("시간 구간","count",[["2","2구간 · 6초"],["3","3구간 · 10초"]])
+    +`<div class="sd-segs" id="sdSegs"></div>`
+    +seg("오디오","audio",[["none","무음"],["ambient","환경음"],["dialogue","환경음+대사"]])
+    +`<input class="sd-note" id="sdNote" aria-label="효과음·대사 메모"
+       placeholder="효과음·대사를 직접 적을 수 있어요 (선택)">`
+    +(CONFIG.sd.preserve
+      ? seg("참조 이미지 유지","preserve",[["strict","엄격 유지"],["natural","자연스러운 변주"]])
+      : "");
+  SUBJECT_BOX.insertAdjacentElement("afterend",box);
+
+  // 구간 입력칸은 개수가 바뀌므로 따로 그린다
+  const segsEl=box.querySelector("#sdSegs");
+  const drawSegs=()=>{
+    segsEl.innerHTML=SD_TIMES[sd.count].map((t,i)=>
+      `<label class="sd-seg"><span class="sd-time">${t}</span>`
+      +`<input data-sd-seg="${i}" aria-label="${t} 구간 내용"`
+      +` placeholder="${(CONFIG.sd.segHints||[])[i]||"이 구간에서 무엇이 일어나나요?"}"></label>`
+    ).join("");
+    SD_TIMES[sd.count].forEach((_,i)=>{
+      segsEl.querySelector(`[data-sd-seg="${i}"]`).value=sd.segs[i]||"";
+    });
+  };
+  box.drawSegs=drawSegs;
+  drawSegs();
+
+  /* 구간·메모는 한 글자마다 결과만 바뀐다 — 칩 200개를 다시 훑을 이유가 없다.
+     피사체 입력칸과 같은 이유로 syncOutput 만 부른다. */
+  box.addEventListener("input",e=>{
+    const s=e.target.closest("[data-sd-seg]");
+    if(s){ sd.segs[+s.dataset.sdSeg]=s.value; syncOutput(); queueSave(); return; }
+    if(e.target.id==="sdNote"){ sd.note=e.target.value; syncOutput(); queueSave(); }
+  });
+  box.addEventListener("click",e=>{
+    const c=e.target.closest("[data-sd-count]");
+    if(c){ pushHistory(); sd.count=+c.dataset.sdCount; drawSegs(); sync(); return; }
+    const a=e.target.closest("[data-sd-audio]");
+    if(a){ pushHistory(); sd.audio=a.dataset.sdAudio; sync(); return; }
+    const p=e.target.closest("[data-sd-preserve]");
+    if(p){ pushHistory(); sd.preserve=p.dataset.sdPreserve; sync(); }
+  });
+  return box;
+}
+/* 패널의 버튼 눌림 상태와 표시 여부를 현재 모델에 맞춘다 */
+function syncSdUI(){
+  if(!SD_BOX) return;
+  SD_BOX.hidden = modelKey!=="seedance";
+  const mark=(name,val)=>SD_BOX.querySelectorAll(`[data-sd-${name}]`).forEach(b=>{
+    const on=b.dataset[`sd${name[0].toUpperCase()+name.slice(1)}`]===String(val);
+    b.classList.toggle("on",on); b.setAttribute("aria-pressed",on);
+  });
+  mark("count",sd.count); mark("audio",sd.audio); mark("preserve",sd.preserve);
+  SD_BOX.querySelector("#sdNote").hidden = sd.audio==="none";
+}
+/* sd 를 통째로 갈아끼운 뒤(되돌리기·복원·초기화) 입력칸 값을 다시 채운다 */
+function redrawSd(){
+  if(!SD_BOX) return;
+  SD_BOX.drawSegs();
+  SD_BOX.querySelector("#sdNote").value=sd.note;
+}
 const PROMPT_EL=document.getElementById("prompt");
 const WARNS_EL=document.getElementById("warns");
 const OUT_LAB=document.getElementById("outLab");
@@ -1826,6 +1916,7 @@ function syncOutput(){
     const on=b.dataset.length===outputLength;
     b.classList.toggle("on",on); b.setAttribute("aria-pressed",on);
   });
+  syncSdUI();
   const model=currentModel();
   document.getElementById("modeHelp").textContent=model.help
     +" 간결은 장비의 시각효과 설명을 생략하며, 선택한 항목 자체는 모두 포함합니다.";
@@ -1952,6 +2043,7 @@ function saveState(){
       scope:Object.fromEntries(ORDER.map(id=>[id,scope[id]])),
       guard:guardOn, wiz:wizPick, preset:activePreset,
       selOpen:selSumBox.classList.contains("open"),
+      sd:{...sd, segs:[...sd.segs]},
     }));
   }catch(e){}   // 용량 초과·비공개 모드 등 — 저장 실패는 앱 동작에 영향이 없다
 }
@@ -1993,6 +2085,16 @@ function restoreState(){
   wizPick=(saved.wiz && typeof saved.wiz==="object") ? {...saved.wiz} : {};
   activePreset=(saved.preset && PRESETS[saved.preset]) ? saved.preset : null;
   document.getElementById("subject").value=saved.subject||"";
+  /* 저장된 값이 지금의 선택지에 없을 수 있다(구간 수·오디오 종류가 바뀐 경우) */
+  if(saved.sd && typeof saved.sd==="object"){
+    const v=saved.sd;
+    if(SD_TIMES[v.count]) sd.count=v.count;
+    if(Array.isArray(v.segs)) sd.segs=[0,1,2].map(i=>String(v.segs[i]||""));
+    if(v.audio in SD_AUDIO) sd.audio=v.audio;
+    if(v.preserve==="strict"||v.preserve==="natural") sd.preserve=v.preserve;
+    sd.note=String(v.note||"");
+    redrawSd();
+  }
   setSelSumOpen(!!saved.selOpen);
   syncLevelUI(); syncWizUI(); syncPresetUI();
 }
@@ -2014,6 +2116,30 @@ function block(label,arr){ const t=listText(arr); return t?`${label}: ${t}.`:"";
 /* 라벨 없이 문장 조각을 이어 쓰는 모델(Seedance 등)에서 첫 글자만 올린다.
    한글·숫자로 시작하면 toUpperCase 가 원본을 그대로 돌려주므로 그대로 통과한다. */
 function cap(t){ const s=(t||"").trim(); return s ? s[0].toUpperCase()+s.slice(1) : ""; }
+const dot=t=>/[.!?]$/.test(t) ? t : t+".";
+
+/* ── Seedance 2.0 프롬프트 조립 ──
+   2.0 은 시간 구간을 줄 단위로 읽는다. 한 문단으로 뭉개면 '언제 무엇이 바뀌는가'가
+   사라지므로 여기서 만든 줄바꿈은 끝까지 살려야 한다(dedupePhrases 참고). */
+function sdSegments(){
+  return SD_TIMES[sd.count]
+    .map((time,i)=>({time, text:(sd.segs[i]||"").trim()}))
+    .filter(s=>s.text);
+}
+function sdAudioLine(){
+  const note=sd.note.trim();
+  return "Audio: "+SD_AUDIO[sd.audio]+(note ? " "+dot(cap(note)) : "");
+}
+function sdPrompt({head, camera, style, keep}){
+  const lines=[];
+  if(head)   lines.push(dot(cap(head)));
+  sdSegments().forEach(s=>lines.push(`${s.time}: ${dot(cap(s.text))}`));
+  if(camera) lines.push(dot("Camera: "+camera));
+  if(style)  lines.push(dot("Style: "+style));
+  lines.push(sdAudioLine());
+  if(keep)   lines.push(keep);
+  return lines.join("\n");
+}
 function plain(label,t){ const c=(t||"").trim().replace(/[.\s]+$/,""); return c?`${label}: ${c}.`:""; }
 const subjectText=()=>document.getElementById("subject").value.trim();
 const currentModel=()=>CONFIG.models.find(m=>m.key===modelKey);
@@ -2031,20 +2157,27 @@ function withGuard(txt){
 function dedupePhrases(txt){
   if(!txt) return txt;
   const seen=new Set();
-  return txt.split(/(?<=[.;])\s+/).map(sent=>{
+  /* 문장을 가른 공백을 함께 담아 두고 그대로 되돌린다.
+     예전처럼 join(" ") 로 합치면 Seedance 2.0 의 시간 구간 줄바꿈이 한 줄로 뭉개진다.
+     한 칸 공백으로 이어지던 기존 모델(Veo·범용)의 출력은 그대로다. */
+  const parts=txt.split(/(?<=[.;])(\s+)/);
+  const out=[];
+  for(let i=0;i<parts.length;i+=2){
+    const sent=parts[i], sep=parts[i+1]||"";
     const head=sent.match(/^[^:.]{1,40}:\s*/);      // "Camera and lens: " 같은 라벨은 보존
     const label=head?head[0]:"";
     let body=sent.slice(label.length);
-    const dot=/\.$/.test(body);
-    if(dot) body=body.slice(0,-1);
+    const period=/\.$/.test(body);
+    if(period) body=body.slice(0,-1);
     const kept=body.split(", ").filter(p=>{
       const k=p.trim().toLowerCase();
       if(!k) return false;
       if(seen.has(k)) return false;
       seen.add(k); return true;
     });
-    return kept.length ? label+kept.join(", ")+(dot?".":"") : "";
-  }).filter(Boolean).join(" ");
+    if(kept.length) out.push(label+kept.join(", ")+(period?".":""), sep);
+  }
+  return out.join("").replace(/\s+$/,"");
 }
 
 function build(){ return withGuard(dedupePhrases(CONFIG.build(modelKey))); }

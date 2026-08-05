@@ -116,6 +116,16 @@ const CONFIG = {
   subjectPlaceholder:'무엇이 어떻게 움직이나요? (예: a woman walks through a rainy Tokyo alley, looking back)',
   warnEmptySubject:'피사체와 행동이 비어 있어요 — 영상 모델은 "무엇이 무엇을 한다"가 없으면 결과가 불안정합니다',
 
+  // Seedance 전용 입력 패널 (엔진이 만든다). preserve 는 참조 이미지가 있는 I2V 만 쓴다
+  sd:{
+    preserve:false,
+    segHints:[
+      "처음에 무엇이 보이고 어떻게 움직이나요?",
+      "그다음 무엇이 바뀌나요?",
+      "마지막에 어떻게 끝나나요?",
+    ],
+  },
+
   sections:["shot","move","body","lens","light","film","tech"],
   order:["shot","move","body","lens","light","film","tech"],
   short:{shot:"샷",move:"무빙",body:"바디",lens:"렌즈",light:"조명",film:"색감",tech:"디테일"},
@@ -219,11 +229,11 @@ const CONFIG = {
      help:"촬영법 · 피사체와 행동 · 카메라 · 조명 · 마감을 구조화된 문장으로 조합합니다. 긴 프롬프트를 잘 소화합니다.",
      guard:" Render the frame clean, without any text, watermarks or camera interface overlays.",
      limit:{short:130, detail:210}},
-    {key:"seedance", label:"Seedance (Doubao · 즉몽)", shortLabel:"Seedance",
-     help:"라벨 없는 한 문단 서술형. 주체·행동 → 카메라 → 조명 → 색감 → 마감 순서로 이어 씁니다.",
-     guard:" Render the frame clean, without any text, watermarks or camera interface overlays.",
-     // Seedance 는 50~150단어를 권장하며 200단어를 넘기면 지시가 뭉개진다
-     limit:{short:120, detail:185}},
+    {key:"seedance", label:"Seedance 2.0", shortLabel:"Seedance",
+     help:"시간 구간별로 무엇이 변하는지와 오디오를 함께 지시합니다. 아래 구간 입력칸을 채우세요.",
+     guard:" No on-screen text, watermark or camera UI overlay.",
+     // 2.0 은 4~15초. 구간을 나눠 쓰므로 단일 숏 형식보다 길어진다
+     limit:{short:140, detail:210}},
     {key:"generic", label:"범용 영상 (Kling · Pika 등)", shortLabel:"범용 영상",
      help:"키워드 나열형. 문장 해석이 약한 모델에 적합합니다.",
      guard:", clean frame without text, watermark or camera UI overlay",
@@ -233,22 +243,18 @@ const CONFIG = {
 
   build(model){
     const subj=subjectText();
-    /* Seedance 는 "Camera and lens:" 같은 라벨 블록을 화면 속 글자로 그려내거나
-       통째로 무시한다. 공식 가이드가 권하는 형태는 라벨 없는 한 문단으로,
-       주체·행동 → 카메라(샷·무빙) → 장비·렌즈 → 조명·색감 → 마감 순서다.
-       항목이 전부 명사구라 억지로 동사를 붙이면 비문이 된다("Captured on shot on
-       ARRI Alexa 35"). 실제 시네마틱 프롬프트처럼 첫 글자만 올려 문장 조각으로 끊는다. */
+    /* Seedance 2.0 은 '시간이 지나며 무엇이 변하는가'를 줄 단위로 읽고 오디오도 같이 만든다.
+       카메라·렌즈 키워드를 늘어놓는 것보다 구간별 사건 전개가 결과를 크게 가른다.
+       (1.0/1.5 는 무음·단일 숏이라 이 형식이 필요 없다 — 그쪽은 범용/Veo 쪽이 낫다.) */
     if(model==="seedance"){
-      const frag=arr=>{ const t=listText(arr); return t ? cap(t)+"." : ""; };
-      return [
-        subj ? cap(subj.replace(/[.\s]+$/,""))+"." : "",
-        frag(pick("shot","move")),
-        frag(pick("body","lens")),
-        frag(pick("light","film")),
-        frag(items("tech")),
-        outputLength==="detail"
-          ? "The motion stays physically plausible and the take runs continuously." : "",
-      ].filter(Boolean).join(" ");
+      return sdPrompt({
+        head: subj,
+        camera: listText(pick("shot","move")),
+        style: listText(pick("body","lens","light","film","tech")),
+        keep: outputLength==="detail"
+          ? "One continuous shot. Keep the subject, wardrobe and setting consistent throughout, and keep the motion physically plausible."
+          : "One continuous shot. Keep the subject and setting consistent throughout.",
+      });
     }
     if(model==="generic"){
       const parts=[];

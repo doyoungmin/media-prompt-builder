@@ -140,6 +140,23 @@
   .seg button.on{background:var(--s2);color:var(--tx)}
   .mode-help{font-size:11px;color:var(--tx3);margin-top:9px;line-height:1.45}
 
+  /* Seedance 전용 입력 — 모델이 seedance 일 때만 나온다 */
+  .sd-box[hidden]{display:none}
+  .sd-box{display:flex;flex-direction:column;gap:6px;width:100%;flex:0 0 auto;
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 13px}
+  /* 결과 패널 안에서는 옆 블록들이 테두리를 벗으므로 여기도 맞춘다 */
+  .out .sd-box{background:none;border:0;border-radius:0;padding:0}
+  .sd-box .profile-label{margin:4px 0 2px}
+  .sd-box .profile-label:first-child{margin-top:0}
+  .sd-segs{display:flex;flex-direction:column;gap:5px}
+  .sd-seg{display:flex;align-items:center;gap:8px}
+  .sd-time{flex:0 0 46px;font-size:11px;font-weight:700;color:var(--acc2);
+    font-variant-numeric:tabular-nums}
+  .sd-seg input,.sd-note{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);
+    color:var(--tx);padding:9px 11px;border-radius:9px;font-size:12px;font-family:inherit}
+  .sd-seg input:focus,.sd-note:focus{outline:none;border-color:var(--acc2)}
+  .sd-note[hidden]{display:none}
+
   /* 선택 방법 탭 — 헤더 우측의 분절 컨트롤.
      헤더 한 줄에 들어가야 하므로 보조 설명(small)은 감추고 title 로 넘긴다.
      밑줄 방식은 세로 정렬이 어긋나 보여, 한 덩이로 묶고 현재 항목만 면을 준다. */
