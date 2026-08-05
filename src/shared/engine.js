@@ -2011,6 +2011,9 @@ const pick=(...ids)=>ids.flatMap(items);
 function itemText(it){ return outputLength==="detail" && it.ext ? `${it.en}, ${it.ext}` : it.en; }
 function listText(arr){ return arr.map(itemText).filter(Boolean).join(", "); }
 function block(label,arr){ const t=listText(arr); return t?`${label}: ${t}.`:""; }
+/* 라벨 없이 문장 조각을 이어 쓰는 모델(Seedance 등)에서 첫 글자만 올린다.
+   한글·숫자로 시작하면 toUpperCase 가 원본을 그대로 돌려주므로 그대로 통과한다. */
+function cap(t){ const s=(t||"").trim(); return s ? s[0].toUpperCase()+s.slice(1) : ""; }
 function plain(label,t){ const c=(t||"").trim().replace(/[.\s]+$/,""); return c?`${label}: ${c}.`:""; }
 const subjectText=()=>document.getElementById("subject").value.trim();
 const currentModel=()=>CONFIG.models.find(m=>m.key===modelKey);

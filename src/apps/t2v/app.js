@@ -219,6 +219,11 @@ const CONFIG = {
      help:"촬영법 · 피사체와 행동 · 카메라 · 조명 · 마감을 구조화된 문장으로 조합합니다. 긴 프롬프트를 잘 소화합니다.",
      guard:" Render the frame clean, without any text, watermarks or camera interface overlays.",
      limit:{short:130, detail:210}},
+    {key:"seedance", label:"Seedance (Doubao · 즉몽)", shortLabel:"Seedance",
+     help:"라벨 없는 한 문단 서술형. 주체·행동 → 카메라 → 조명 → 색감 → 마감 순서로 이어 씁니다.",
+     guard:" Render the frame clean, without any text, watermarks or camera interface overlays.",
+     // Seedance 는 50~150단어를 권장하며 200단어를 넘기면 지시가 뭉개진다
+     limit:{short:120, detail:185}},
     {key:"generic", label:"범용 영상 (Kling · Pika 등)", shortLabel:"범용 영상",
      help:"키워드 나열형. 문장 해석이 약한 모델에 적합합니다.",
      guard:", clean frame without text, watermark or camera UI overlay",
@@ -228,6 +233,23 @@ const CONFIG = {
 
   build(model){
     const subj=subjectText();
+    /* Seedance 는 "Camera and lens:" 같은 라벨 블록을 화면 속 글자로 그려내거나
+       통째로 무시한다. 공식 가이드가 권하는 형태는 라벨 없는 한 문단으로,
+       주체·행동 → 카메라(샷·무빙) → 장비·렌즈 → 조명·색감 → 마감 순서다.
+       항목이 전부 명사구라 억지로 동사를 붙이면 비문이 된다("Captured on shot on
+       ARRI Alexa 35"). 실제 시네마틱 프롬프트처럼 첫 글자만 올려 문장 조각으로 끊는다. */
+    if(model==="seedance"){
+      const frag=arr=>{ const t=listText(arr); return t ? cap(t)+"." : ""; };
+      return [
+        subj ? cap(subj.replace(/[.\s]+$/,""))+"." : "",
+        frag(pick("shot","move")),
+        frag(pick("body","lens")),
+        frag(pick("light","film")),
+        frag(items("tech")),
+        outputLength==="detail"
+          ? "The motion stays physically plausible and the take runs continuously." : "",
+      ].filter(Boolean).join(" ");
+    }
     if(model==="generic"){
       const parts=[];
       if(subj) parts.push(subj);

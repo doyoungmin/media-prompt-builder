@@ -162,6 +162,11 @@ const CONFIG = {
      help:"움직임과 연속성 유지 지시를 구조화된 문장으로 조합합니다.",
      guard:" Keep the subject, composition and lighting consistent with the reference image. Render the frame clean, without any text or watermarks.",
      limit:{short:110, detail:190}},
+    {key:"seedance", label:"Seedance (Doubao · 즉몽)", shortLabel:"Seedance",
+     help:"라벨 없는 한 문단 서술형. 첫 프레임 유지 → 움직임 → 카메라 → 마감 순서로 이어 씁니다.",
+     guard:" Keep the subject, composition and lighting consistent with the reference image, and render the frame clean, without any text or watermarks.",
+     // Seedance 는 50~150단어를 권장한다. I2V 는 장면 묘사가 이미지로 대체되어 더 짧다
+     limit:{short:95, detail:165}},
     {key:"generic", label:"범용 (Kling · Luma · Pika 등)", shortLabel:"범용",
      help:"짧은 키워드 나열형. 문장 해석이 약한 모델에 적합합니다.",
      guard:", keep the reference image style, clean frame without text or watermark",
@@ -171,6 +176,19 @@ const CONFIG = {
   build(model){
     const motion=subjectText();
     if(!motion) return "";        // 움직임 설명이 없으면 프롬프트를 만들지 않는다
+    /* T2V 와 같은 이유로 라벨 없이 문장 조각을 끊어 쓴다(t2v/app.js 주석 참고).
+       I2V 에서는 첫 프레임이 곧 참조 이미지이므로 그 사실을 맨 앞에 못박는다. */
+    if(model==="seedance"){
+      const frag=arr=>{ const t=listText(arr); return t ? cap(t)+"." : ""; };
+      return [
+        "Animate the reference image as the first frame.",
+        cap(motion.replace(/[.\s]+$/,""))+".",
+        frag(pick("move","shot")),
+        frag(items("tech")),
+        outputLength==="detail"
+          ? "The motion stays physically plausible and continuous from the first frame." : "",
+      ].filter(Boolean).join(" ");
+    }
     if(model==="generic"){
       const parts=["animate this image", motion];
       ["move","shot","tech"].forEach(id=>items(id).forEach(it=>parts.push(itemText(it))));

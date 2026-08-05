@@ -23,6 +23,19 @@ npm run build            # dist/ 생성
 수정 → 반영 흐름: 공통 수정은 engine.js 한 곳, 앱별 수정은 해당 app.js 한 곳만 고치면
 세 앱에 동시에 반영된다. `npm run test:smoke` 로 3개 앱 렌더 검증.
 
+### 대상 모델 추가
+
+각 `app.js` 의 `CONFIG.models` 에 항목을 넣고 `CONFIG.build(model)` 에 분기를 더하면
+'대상 모델' 전환 버튼이 자동으로 생긴다. `guard` 는 텍스트·워터마크 방지 문구,
+`limit` 은 간결/상세 각각의 권장 단어 수다.
+
+현재 영상 빌더(t2v·i2v)는 Veo · **Seedance** · 범용 셋을 지원한다. Seedance 는
+`Camera and lens:` 같은 라벨 블록을 화면 속 글자로 그려내거나 무시하므로,
+라벨 없이 문장 조각을 마침표로 끊어 한 문단으로 잇는다 (주체·행동 → 카메라 → 장비·렌즈
+→ 조명·색감 → 마감). 항목이 전부 명사구라 동사를 억지로 붙이면 비문이 되기 때문에
+`cap()` 으로 첫 글자만 올린다. `npm run verify:seedance` 가 실제 출력 문자열을 뽑아
+라벨 잔존·비문·200단어 초과·경계 상황(선택 0개, 입력 없음)을 검사한다.
+
 ## 배포 (GitHub → Cloudflare Pages 자동)
 
 1. 이 폴더를 GitHub 저장소로 push
