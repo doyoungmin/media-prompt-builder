@@ -26,10 +26,18 @@ for (const app of ["image", "t2v", "i2v"]) {
   const order = [...d.getElementById("outPanel").children]
     .map(el => el.id || el.className.split(" ")[0]);
   const want = ["modelBox", "subject-box", ...(app === "image" ? [] : ["sdBox"]),
-                "scope", "selSumBox", "out-top", "prompt", "warns", "outActions"];
+                "scope", "selSumBox", "out-top", "prompt", "outActions"];
   if (order.join(",") !== want.join(",")) {
     errs.push(`레일 순서가 다름: ${order.join(" > ")}`);
   }
+  /* 안내는 고칠 곳 옆으로 나눠 갔다 — 모아 띄우던 상자는 없어야 한다 */
+  if (d.getElementById("warns")) errs.push("안내 상자(.warns)가 남아 있음");
+  if (!d.querySelector(".subject-box > #subjectNote")) errs.push("입력 안내 자리가 없음");
+  if (!d.querySelector("#outLab > #outNote")) errs.push("결과 안내 자리가 없음");
+  if (!d.querySelector(".scope-lab > #scopeOff")) errs.push("제외 문구가 출력 범위 라벨 옆에 없음");
+  // 개수·단어수는 걷어냈다 (간결/상세 버튼이 이미 단어수를 말한다)
+  const labText = d.getElementById("outLab").textContent;
+  if (/출력 중|단어|선택 없음/.test(labText)) errs.push(`제목에 중복 정보가 남음: "${labText}"`);
   // 화면 테마는 헤더로 옮겼다 — 레일에 남아 있으면 안 된다
   if (!d.querySelector("header #themeSwitch")) errs.push("themeSwitch 가 헤더에 없음");
   if (d.querySelector("#outPanel #themeSwitch")) errs.push("themeSwitch 가 레일에 남아 있음");

@@ -123,6 +123,7 @@
     <div class="subject-box">
       <span class="field-lab" id="subjectFieldLabel" aria-hidden="true"><svg class="ic"
         aria-hidden="true"><use href="#i-subject"/></svg><span id="subjectFieldText"></span></span>
+      <span class="note" id="subjectNote" role="status" aria-live="polite"></span>
       <input id="subject" aria-label="피사체 · 장면 입력" autofocus>
     </div>
 
@@ -146,7 +147,6 @@
     </div>
     <textarea id="prompt" aria-label="생성된 프롬프트"
               placeholder="왼쪽에서 항목을 고르면 여기에 프롬프트가 만들어집니다." readonly></textarea>
-    <div class="warns" id="warns" role="status" aria-live="polite"></div>
 
     <!-- 7. 동작 버튼 — 레일을 스크롤해도 복사가 손에 닿는 곳에 남아야 한다 -->
     <div class="out-actions" id="outActions">

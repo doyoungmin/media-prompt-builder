@@ -1353,10 +1353,10 @@ if(Object.keys(PRESETS).length===0){
    여기에는 여러 섹션을 한 번에 바꾸는 프리셋과, 출력 전체에 걸리는 텍스트 방지만 둔다. */
 const SEC_SHORT=CONFIG.short;
 document.getElementById("scope").innerHTML =
-  `<span class="scope-lab">출력 범위</span>` +
+  // 제외 목록은 '출력 범위' 라벨 줄의 오른쪽 끝에 붙인다 (빠진 게 있다는 사실이 제목과 한 줄)
+  `<span class="scope-lab">출력 범위<span class="scope-off" id="scopeOff"></span></span>` +
   Object.keys(CONFIG.quick).map(k=>`<button class="sc quick" data-quick="${k}">${k}</button>`).join("") +
-  `<span class="scope-off" id="scopeOff"></span>
-   <span class="divider"></span>
+  `<span class="divider"></span>
    <button class="sc on" id="guardBtn" aria-pressed="true"
      title="프롬프트 끝에 텍스트·워터마크·카메라 UI가 화면에 그려지는 것을 막는 문구를 추가합니다"
      ><svg class="ic" aria-hidden="true"><use href="#i-no-text"/></svg>텍스트 방지</button>`;
@@ -1823,7 +1823,25 @@ function redrawSd(){
   SD_BOX.querySelector("#sdNote").value=sd.note;
 }
 const PROMPT_EL=document.getElementById("prompt");
-const WARNS_EL=document.getElementById("warns");
+const SUBJECT_NOTE=document.getElementById("subjectNote");
+/* 결과 제목 옆 안내 — OUT_LAB 을 매번 다시 그리므로 노드를 만들어 들고 다닌다 */
+const OUT_NOTE=document.createElement("span");
+OUT_NOTE.id="outNote"; OUT_NOTE.setAttribute("role","status");
+OUT_NOTE.setAttribute("aria-live","polite");
+/* 좁은 자리라 첫 건만 적고 전체는 툴팁으로 넘긴다.
+   내용이 같으면 건드리지 않는다 — 라이브 영역이라 매 입력마다 다시 쓰면
+   스크린리더가 같은 문장을 계속 읽는다. */
+function setNote(el, notes){
+  const first=notes[0];
+  const text = first
+    ? first.t.split("\n")[0] + (notes.length>1 ? ` 외 ${notes.length-1}건` : "")
+    : "";
+  if(el.textContent!==text) el.textContent=text;
+  const full=notes.map(n=>n.t).join("\n");
+  if(el.title!==full) el.title=full;
+  const cls="note"+(first?" show "+first.tone:"");
+  if(el.className!==cls) el.className=cls;
+}
 const OUT_LAB=document.getElementById("outLab");
 const MOBILE_OUT_SUM=document.getElementById("mobileOutSum");
 const MOBILE_OUT_HEAD_SUM=document.getElementById("mobileOutHeadSum");
@@ -1922,40 +1940,39 @@ function syncOutput(){
   gb.title = noGuard ? model.noGuardReason
     : "프롬프트 끝에 텍스트·워터마크·카메라 UI가 화면에 그려지는 것을 막는 문구를 추가합니다";
 
+  /* ── 안내 ──
+     한곳에 모아 띄우던 팝업을 없애고, 고칠 곳 옆에 붙인다.
+     입력에 관한 말은 입력칸 라벨 옆(inputNotes), 조합·적용·길이에 관한 말은
+     결과 제목 옆(resultNotes). 좁은 자리라 첫 건만 쓰고 나머지는 툴팁으로 넘긴다. */
   const active=n=>{ const l=lookup[n]; return l && scope[l.sec] && state[l.sec].has(n); };
-  const msgs=SOFT.filter(r=>r.a.some(active)&&r.b.some(active)).map(r=>r.msg);
+  const inputNotes=[], resultNotes=[];
   const subjText=document.getElementById("subject").value.trim();
   const subjEmpty=!subjText;
-  if(subjEmpty && total>0 && CONFIG.warnEmptySubject) msgs.push(CONFIG.warnEmptySubject);
+
+  /* 자리가 한 줄뿐이라 순서가 곧 우선순위다.
+     방금 한 동작의 결과(해제·교체) → 고쳐야 할 것(조합·길이) → 잘 됐다는 확인(적용됨).
+     '적용됨'은 사용자가 방금 의도한 일이라 가장 덜 급하다 — 맨 뒤로 미룬다. */
+  if(conflictNotice)
+    resultNotes.push({t:`${conflictNotice.kept}와(과) 함께 쓸 수 없어 자동 해제: ${conflictNotice.removed.join(" · ")}`,
+                      tone:"swap"});
+  if(replacedNotice)
+    resultNotes.push({t:"직접 조정한 선택이 교체되었습니다 — '되돌리기'로 복구할 수 있어요", tone:"info"});
+  SOFT.filter(r=>r.a.some(active)&&r.b.some(active))
+      .forEach(r=>resultNotes.push({t:r.msg, tone:"warn"}));
+
+  if(subjEmpty && total>0 && CONFIG.warnEmptySubject)
+    inputNotes.push({t:CONFIG.warnEmptySubject, tone:"warn"});
   /* 조립되는 나머지 문구는 전부 영어다. 여기만 한국어면 모델이 그 부분을
-     해석하지 못하거나 화면 속 글자로 그려낸다 — 단어 수 계산도 어긋난다. */
+     해석하지 못하거나 화면 속 글자로 그려낸다. */
   if(subjText && HANGUL_RE.test(subjText))
-    msgs.push(`${CONFIG.shortLabel||CONFIG.subjectLabel}가 한국어입니다 — 영어로 쓰면 결과가 훨씬 안정적입니다`);
+    inputNotes.push({t:`한국어입니다 — 영어로 쓰면 결과가 훨씬 안정적입니다`, tone:"warn"});
   // 입력 텍스트 ↔ 선택 항목 모순
   if(subjText) TEXT_CONFLICTS.forEach(r=>{
     const m=subjText.match(r.re);
     if(m){ const hit=r.items.filter(active);
-      if(hit.length) msgs.push(`${r.msg(m[0])} — ${hit.join(", ")}`); }
+      if(hit.length) inputNotes.push({t:`${r.msg(m[0])} — ${hit.join(", ")}`, tone:"warn"}); }
   });
-  let html=msgs.map(m=>`<div>${m}</div>`).join("");
-  if(lastApplied){
-    // 방금 적용한 개수와 현재 전체 선택 수를 함께 보여준다 (숫자가 어긋나 보이지 않도록)
-    const all=DATA.reduce((n,s)=>n+state[s.id].size,0);
-    const extra = all>lastApplied.items.length ? ` · 현재 총 ${all}개 선택됨` : "";
-    html=`<div class="ok"><b>${lastApplied.label}</b> → ${lastApplied.items.length}개 적용`
-      +`${lastApplied.why?" · "+lastApplied.why:""}${extra}`
-      +`<br><span class="applied">${lastApplied.items.join(" · ")}</span></div>`+html;
-  }
-  if(conflictNotice) html=`<div class="swap"><b>${conflictNotice.kept}</b>와(과) 함께 쓸 수 없어 자동으로 해제했습니다`
-    +`<br><span class="applied">${conflictNotice.removed.join(" · ")}</span></div>`+html;
-  if(replacedNotice) html=`<div class="info">직접 조정한 선택이 교체되었습니다 — '되돌리기'로 복구할 수 있어요</div>`+html;
-  const wEl=WARNS_EL;
-  // 내용이 같으면 건드리지 않는다 — role="status" 라이브 영역이라 매 입력마다
-  // 다시 그리면 스크린리더가 같은 문장을 계속 읽는다.
-  if(wEl.innerHTML!==html) wEl.innerHTML=html;
-  const hasWarn=msgs.length>0||replacedNotice||!!conflictNotice||!!lastApplied;
-  wEl.classList.toggle("show",hasWarn);
-  document.body.classList.toggle("haswarn",hasWarn);
+
   document.getElementById("undoBtn").disabled=undoStack.length===0;
 
   const shortWords=wordCount(buildForLength("short"));
@@ -1978,19 +1995,28 @@ function syncOutput(){
   const words=wordCount(txt);
   // limit은 모델의 하드 제한이 아니라 이 앱의 권장 길이 기준이다.
   const lim=model.limit || {short:80, detail:150};
-  const limit=lim[outputLength];
-  const long=words>limit;
-  /* '0개 출력 중' 은 무언가 잘못된 것처럼 읽힌다 — 아직 안 골랐을 뿐이다 */
-  const outputStatus = blocked
-    ? `${total}개 선택됨 · ${CONFIG.shortLabel||CONFIG.subjectLabel} 입력 대기`
-    : `${total ? `${total}개 출력 중` : "선택 없음"} · 약 ${words}단어`;
-  OUT_LAB.innerHTML =
-    `생성된 프롬프트 <span>${summary}</span> <b>${outputStatus}</b>`
-    + (long ? `<i class="lw">권장 길이보다 길어요 — `
-              + (outputLength==="short"?"항목을 줄이세요":"간결 모드 권장")+`</i>` : "");
-  const mobileStatus=!txt && total===0 ? "선택 결과가 여기에 표시됩니다." : outputStatus;
-  MOBILE_OUT_SUM.textContent=mobileStatus;
-  MOBILE_OUT_HEAD_SUM.textContent=`${summary} · ${mobileStatus}`;
+  if(words>lim[outputLength]) resultNotes.push({
+    t:"권장 길이보다 길어요 — "+(outputLength==="short"?"항목을 줄이세요":"간결 모드 권장"),
+    tone:"warn"});
+  // 확인 문구는 맨 뒤 — 고쳐야 할 것이 있으면 그쪽이 먼저 보여야 한다
+  if(lastApplied){
+    const all=DATA.reduce((n,s)=>n+state[s.id].size,0);
+    const extra = all>lastApplied.items.length ? ` · 현재 총 ${all}개` : "";
+    resultNotes.push({t:`${lastApplied.label} → ${lastApplied.items.length}개 적용${extra}`
+      +`${lastApplied.why?" · "+lastApplied.why:""}\n${lastApplied.items.join(" · ")}`, tone:"ok"});
+  }
+  /* blocked 조건은 warnEmptySubject 와 같아서 따로 말하지 않는다 —
+     그 문구가 이미 입력칸 옆에 떠 있고, .need 로 입력칸도 함께 표시된다. */
+  setNote(SUBJECT_NOTE, inputNotes);
+  OUT_LAB.textContent="생성된 프롬프트";
+  OUT_LAB.appendChild(OUT_NOTE);
+  setNote(OUT_NOTE, resultNotes);
+
+  /* 모바일 접힘 바 — 개수·단어수 대신 지금 알아야 할 것 한 줄만 */
+  const head=[...resultNotes,...inputNotes][0];
+  MOBILE_OUT_SUM.textContent = head ? head.t.split("\n")[0]
+    : (txt ? summary : "선택 결과가 여기에 표시됩니다.");
+  MOBILE_OUT_HEAD_SUM.textContent=summary;
 
   queueSave();
 }

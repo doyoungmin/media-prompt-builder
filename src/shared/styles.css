@@ -340,18 +340,15 @@
   .sc.quick{color:var(--tx2)}
   .sc.quick:hover{color:var(--acc2);border-color:var(--acc2)}
   .divider{width:1px;height:18px;background:var(--line);margin:0 4px}
-  .warns{display:none;font-size:12px;color:var(--warn);line-height:1.55;margin-bottom:8px;
-    max-height:76px;overflow-y:auto}
-  .warns.show{display:block}
-  .warns div::before{content:"⚠ "}
-  .warns div.info{color:var(--acc2)} .warns div.info::before{content:"↩ "}
-  .warns div.ok{color:var(--ok)} .warns div.ok::before{content:"✓ "}
-  .warns div.ok b{color:var(--ok)}
-  /* 충돌로 자동 해제된 항목 — 경고(노랑)가 아니라 '처리했음'을 알리는 안내 */
-  .warns div.swap{color:var(--tx2)} .warns div.swap::before{content:"⇄ "}
-  .warns div.swap b{color:var(--tx)}
-  .warns .applied{color:var(--tx2);font-size:11px}
-  .out-lab i.lw{font-style:normal;color:var(--warn);margin-left:8px;font-weight:600}
+  /* ── 안내 ── 라벨 줄의 오른쪽 끝에 한 줄로 붙는다. 전체 내용은 툴팁에 있다.
+     성격은 색으로만 구분한다 — 경고 노랑 / 되돌림 파랑 / 적용됨 초록 / 자동 해제 회색 */
+  .note{display:none;min-width:0;font-size:11px;font-weight:600;line-height:1.4;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:help}
+  .note.show{display:block}
+  .note.warn{color:var(--warn)} .note.warn::before{content:"⚠ "}
+  .note.info{color:var(--acc2)} .note.info::before{content:"↩ "}
+  .note.ok{color:var(--ok)} .note.ok::before{content:"✓ "}
+  .note.swap{color:var(--tx2)} .note.swap::before{content:"⇄ "}
   .out-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
   .out-lab{font-size:12px;color:var(--tx3);font-weight:600;flex:1}
   .out-lab b{color:var(--acc2);font-weight:600}
@@ -455,6 +452,8 @@
     border-radius:8px;font-size:11px;font-weight:700;
     background:rgba(245,196,81,.16);color:var(--warn)}
   /* 블록에 테두리가 없어졌으므로 '필수 입력이 비었다'는 신호는 입력칸이 진다 */
+  /* 입력 관련 안내는 라벨 줄 오른쪽 끝 — 입력칸은 그 아래로 넘어간다 */
+  .out .subject-box>.note{margin-left:auto;max-width:62%;text-align:right}
   .out .subject-box.need .field-lab{color:var(--warn)}
   .out .subject-box.need input{border-color:var(--warn-line);background:var(--warn-bg)}
   .out .subject-box.need input:focus{border-color:var(--acc2)}
@@ -475,14 +474,15 @@
      섹션 하나하나를 켜고 끄는 눈 아이콘은 직접 선택의 각 섹션 머리에 그대로 둔다. */
   .out-in>.scope{display:flex;flex:0 0 auto;flex-wrap:wrap;align-items:center;
     width:100%;gap:var(--sp1);margin:0;padding:0}
-  .out-in>.scope .scope-lab{flex:1 0 100%;margin:0 0 var(--sp1);
+  .out-in>.scope .scope-lab{display:flex;align-items:center;gap:var(--sp2);
+    flex:1 0 100%;margin:0 0 var(--sp1);
     font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--tx3)}
   .out-in>.scope .divider{display:block;width:1px;height:16px;margin:0 var(--sp2);
     background:var(--hair)}
   .out-in>.scope .sc{display:inline-flex;align-items:center;gap:6px;
     padding:5px 9px;border-radius:var(--r1);font-size:11px}
   /* 가이드·룩 탭에서는 섹션이 보이지 않으므로, 무엇이 빠졌는지 여기서 알린다 */
-  .scope-off{display:none;flex:1 0 100%;margin:var(--sp1) 0 0;font-size:11px;color:var(--warn)}
+  .scope-off{display:none;margin-left:auto;font-size:11px;font-weight:600;color:var(--warn)}
   .scope-off.show{display:inline}
   .scope-off::before{content:"⊘ "}
 
@@ -520,12 +520,12 @@
 
   /* 결과 헤더 — 라벨 한 줄, 동작 버튼 한 줄. 복사는 폭을 넓혀 주동작으로 둔다 */
   /* 결과 블록만 여백을 좁혀 라벨·버튼·프롬프트가 한 덩어리로 읽히게 한다 */
-  .out-in>.out-top{flex-wrap:nowrap;align-items:flex-end;gap:var(--sp3);
+  .out-in>.out-top{flex-wrap:wrap;align-items:center;gap:var(--sp2) var(--sp3);
     margin:0 0 calc(var(--sp5) * -1 + var(--sp2))}
-  .out .out-lab{flex:1 1 auto;min-width:0;
+  /* 제목 줄이 폭을 다 쓰므로 밀도 스위치는 자연히 아랫줄로 내려간다 */
+  .out .out-lab{display:flex;align-items:baseline;gap:var(--sp3);flex:1 1 100%;min-width:0;
     font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--tx3);line-height:1.45}
-  .out .out-lab>span{display:none}
-  .out .out-lab b{color:var(--tx);font-weight:700}
+  .out .out-lab>.note{margin-left:auto;letter-spacing:0}
   /* 출력 밀도 — 제목 옆의 작은 스위치. 레일 폭을 먹지 않게 내용 크기로 둔다 */
   .out .len-switch{flex:0 0 auto;height:28px;min-height:28px;padding:2px}
   .out .len-switch button{padding:0 10px;font-size:11px;line-height:22px}
@@ -547,9 +547,6 @@
     background:var(--s1);border:1px solid var(--hair);border-radius:var(--r2);
     padding:var(--sp3);font-size:12px;line-height:1.65;word-break:normal}
 
-  .out-in>.warns{flex:0 0 auto;margin:0;max-height:106px;overflow-y:auto;scrollbar-width:thin;
-    padding:10px 11px;background:var(--warn-bg);
-    border:1px solid rgba(245,196,81,.2);border-radius:var(--r2)}
 
   /* ── 화면 테마 ── 헤더 가운데. 이름표 없이 아이콘만 두고 뜻은 툴팁·aria-label 로 넘긴다. */
   .theme-switch{display:flex;flex:0 0 auto;align-items:center;gap:2px;margin:0 auto;
@@ -620,7 +617,6 @@
     /* 보조 설명은 지우지 않고 촘촘하게 — 처음 쓰는 사람에게 필요한 내용이다 */
     .out .mode-help{margin-top:var(--sp1);padding-top:0;font-size:11px;line-height:1.45}
     .out-in>.selsum-box.open>.selsum{max-height:110px}
-    .out-in>.warns{max-height:80px}
   }
 
   /* 세로가 아주 짧은 창 — 보조 설명을 접고 결과 영역 최소 높이를 낮춘다 */
