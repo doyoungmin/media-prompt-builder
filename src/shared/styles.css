@@ -437,13 +437,13 @@
   /* 레일 안에서 표면을 갖는 것은 프롬프트 상자 하나뿐이다.
      나머지 네 블록은 배경·테두리를 벗고 라벨과 여백으로만 구분한다.
      상자 일곱 개가 같은 무게로 쌓여 있던 것을 푼 것이다. */
-  .out .subject-box,.out .profile,.out-in>.selsum-box{
+  .out .subject-box,.out-in>.selsum-box{
     flex:0 0 auto;width:100%;max-width:none;margin:0;padding:0;
     background:none;border:0;border-radius:0}
   /* 블록의 머리 — 이름표가 곧 구분선 역할을 한다 */
-  .out .subject-box .field-lab,.out .profile-head-t{
+  .out .subject-box .field-lab{
     font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--tx3)}
-  .out .subject-box .field-lab .ic,.out .profile-head .ic,.selsum-head .ic{
+  .out .subject-box .field-lab .ic,.selsum-head .ic{
     width:14px;height:14px;color:var(--tx3)}
 
   /* 1번 — 라벨 줄과 입력 줄로 나눈 하나의 필드 */
@@ -463,14 +463,7 @@
   .out .subject-box input:hover{border-color:var(--hair)}
 
   /* 2번 — 펼친 상태에서는 헤더 요약이 아래 컨트롤과 중복되므로 감춘다 */
-  .out .profile{overflow:visible;padding:0}
-  .out .profile.open{position:static;right:auto;box-shadow:none}
-  .out .profile-head{min-height:0;padding:0 0 var(--sp2);gap:var(--sp2);border-radius:0}
-  .out .profile-head:hover{background:none;color:var(--tx2)}
-  .out .profile.open .profile-head{border-radius:0}
-  .out .profile.open .profile-head-s{display:none}
-  .out .profile-body{padding:0}
-  .out .profile-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--sp2);align-items:end}
+  /* .profile-label 은 대상 모델·Seedance 패널이 계속 쓴다 */
   .out .profile-label{font-size:11px;margin-bottom:5px}
   .out .seg{height:34px;min-height:34px}
   .out .seg{padding:3px}
@@ -527,13 +520,27 @@
 
   /* 결과 헤더 — 라벨 한 줄, 동작 버튼 한 줄. 복사는 폭을 넓혀 주동작으로 둔다 */
   /* 결과 블록만 여백을 좁혀 라벨·버튼·프롬프트가 한 덩어리로 읽히게 한다 */
-  .out-in>.out-top{flex-wrap:wrap;align-items:center;gap:var(--sp2);margin:0 0 calc(var(--sp5) * -1 + var(--sp2))}
-  .out .out-lab{flex:1 1 100%;min-width:0;
+  .out-in>.out-top{flex-wrap:nowrap;align-items:flex-end;gap:var(--sp3);
+    margin:0 0 calc(var(--sp5) * -1 + var(--sp2))}
+  .out .out-lab{flex:1 1 auto;min-width:0;
     font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--tx3);line-height:1.45}
   .out .out-lab>span{display:none}
   .out .out-lab b{color:var(--tx);font-weight:700}
-  .out-in>.out-top button.act{flex:1 1 0;min-height:34px;padding:0 9px;font-size:12px}
-  .out-in>.out-top button.copy{flex:1.7 1 0}
+  /* 출력 밀도 — 제목 옆의 작은 스위치. 레일 폭을 먹지 않게 내용 크기로 둔다 */
+  .out .len-switch{flex:0 0 auto;height:28px;min-height:28px;padding:2px}
+  .out .len-switch button{padding:0 10px;font-size:11px;line-height:22px}
+
+  /* 동작 버튼 — 레일 맨 아래 고정. 프롬프트가 길어져도 복사가 화면에 남는다 */
+  .out-in>.out-actions{position:sticky;bottom:0;z-index:5;
+    display:flex;flex:0 0 auto;gap:var(--sp2);
+    margin:0 calc(var(--railpad) * -1) calc(var(--railpad) * -1);
+    padding:var(--sp3) var(--railpad);
+    background:var(--bg);border-top:1px solid var(--hair)}
+  .out-in>.out-actions button.act{flex:1 1 0;min-height:34px;padding:0 9px;font-size:12px}
+  .out-in>.out-actions button.copy{flex:1.7 1 0}
+
+  /* 대상 모델 — 레일 최상단 */
+  .out .model-box{display:flex;flex-direction:column;flex:0 0 auto;width:100%;gap:5px}
 
   /* 레일에서 유일하게 표면을 갖는 요소 — 이 도구의 결과물이므로 혼자 떠 있어야 한다 */
   .out-in>#prompt{flex:1 1 auto;height:auto;min-height:180px;resize:none;
@@ -544,19 +551,16 @@
     padding:10px 11px;background:var(--warn-bg);
     border:1px solid rgba(245,196,81,.2);border-radius:var(--r2)}
 
-  /* ── 화면 테마 ── 결과와 무관한 개인 환경 설정이라 레일의 마지막에 조용히 둔다. */
-  .theme-switch{display:flex;flex:0 0 auto;align-items:center;gap:var(--sp3);
-    width:100%;padding-top:var(--sp2);border-top:1px solid var(--hair)}
-  .theme-label{margin-right:auto;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--tx3)}
-  .theme-options{display:flex;align-items:center;gap:var(--sp1)}
-  .theme-option{display:inline-flex;align-items:center;justify-content:center;gap:6px;
-    min-height:32px;padding:0 9px;border:1px solid transparent;border-radius:var(--r1);
-    background:none;color:var(--tx3);font:inherit;font-size:11px;cursor:pointer;transition:.15s}
-  .theme-option:hover{color:var(--tx);border-color:var(--hair)}
-  .theme-option[aria-pressed="true"]{background:var(--s2);border-color:var(--hair-strong);
-    color:var(--tx);font-weight:700}
+  /* ── 화면 테마 ── 헤더 가운데. 이름표 없이 아이콘만 두고 뜻은 툴팁·aria-label 로 넘긴다. */
+  .theme-switch{display:flex;flex:0 0 auto;align-items:center;gap:2px;margin:0 auto;
+    background:var(--s1);border-radius:var(--r1);padding:2px}
+  .theme-option{display:inline-flex;align-items:center;justify-content:center;
+    width:30px;height:30px;padding:0;border:1px solid transparent;border-radius:var(--r1);
+    background:none;color:var(--tx3);font:inherit;cursor:pointer;transition:.15s}
+  .theme-option:hover{color:var(--tx)}
+  .theme-option[aria-pressed="true"]{background:var(--s2);color:var(--tx)}
   .theme-option:focus-visible{outline:2px solid var(--acc2);outline-offset:2px}
-  .theme-option .ic{width:14px;height:14px}
+  .theme-option .ic{width:15px;height:15px}
 
   /* ── 카드 설명 툴팁 ── 이미지는 카드의 기본 크기로 충분하므로 확대하지 않고,
      감춰 둔 설명만 짧은 지연 뒤 카드 안쪽 상단 중앙에 보여준다. */
@@ -610,11 +614,9 @@
 
   /* 세로 여유가 없는 창(노트북 대부분) — 여백과 보조 설명을 좁혀 스크롤을 없앤다 */
   @media(max-height:940px){
-    .out-in{padding:var(--sp3);gap:var(--sp4)}
+    .out-in{--railpad:var(--sp3);padding:var(--railpad);gap:var(--sp4)}
     .out .subject-box{padding:0}
     .out .subject-box input{margin-top:var(--sp1);padding:9px 10px}
-    .out .profile-head{padding:0 0 var(--sp1)}
-    .out .profile-body{padding:0}
     /* 보조 설명은 지우지 않고 촘촘하게 — 처음 쓰는 사람에게 필요한 내용이다 */
     .out .mode-help{margin-top:var(--sp1);padding-top:0;font-size:11px;line-height:1.45}
     .out-in>.selsum-box.open>.selsum{max-height:110px}
@@ -684,14 +686,12 @@
     .out.mobile-open .out-in{display:flex;flex:1 1 auto;height:auto;min-height:0;
       padding:var(--sp3) var(--sp3) calc(var(--sp3) + env(safe-area-inset-bottom));
       gap:var(--sp4);overflow-y:auto}
-    .out .profile-grid{grid-template-columns:minmax(0,1fr)}
     .out .subject-box input{min-height:44px}
-    .out .profile-head{min-height:40px}
     .out-in>.out-top{margin-bottom:calc(var(--sp4) * -1 + var(--sp2))}
-    .out-in>.out-top button.act{min-height:42px}
+    .out-in>.out-actions button.act{min-height:42px}
     .out-in>#prompt{flex:0 0 auto;min-height:240px;max-height:none;font-size:13px}
     .out-in>.selsum-box.open>.selsum{max-height:180px}
-    .theme-option{min-height:40px}
+    .theme-option{width:36px;height:36px}
     #pvtooltip{display:none !important}
   }
 

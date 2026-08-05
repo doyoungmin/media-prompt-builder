@@ -70,7 +70,7 @@ for (const app of ["t2v", "i2v"]) {
     // 2.0 의 핵심 — 시간 구간이 각각 제 줄에 있어야 한다
     bad(tag, !lines.some(l => /^0-3s: /.test(l)), "0-3s 구간 줄 없음");
     bad(tag, !lines.some(l => /^3-6s: /.test(l)), "3-6s 구간 줄 없음");
-    bad(tag, !/^Audio: /m.test(txt), "Audio 줄 없음");
+    bad(tag, /^Audio: /m.test(txt), "오디오를 안 골랐는데 Audio 줄이 나옴");
     bad(tag, lines.length < 4, "줄이 뭉개짐 (dedupe 가 줄바꿈을 먹었을 가능성)");
     bad(tag, /\s{2,}/.test(txt) || /\.\s*\./.test(txt), "구두점/공백 이상");
     bad(tag, txt.trim().split(/\s+/).length > 220, "220단어 초과");
@@ -82,13 +82,17 @@ for (const app of ["t2v", "i2v"]) {
   fill('[data-sd-seg="2"]', SEGS[app][2]);
   bad(app, !/^6-10s: /m.test(out()), "3구간 모드에서 6-10s 줄이 없음");
 
-  // 오디오 전환
-  click('[data-sd-audio="none"]');
-  bad(app, !/Audio: silent/.test(out()), "무음 선택이 반영되지 않음");
-  bad(app, !d.getElementById("sdNote").hidden, "무음인데 메모 입력칸이 보임");
+  // 오디오 — 기본은 무음(줄 없음), 고른 뒤에만 Audio 줄이 붙는다
+  bad(app, !d.getElementById("sdNote").hidden, "기본 무음인데 메모 입력칸이 보임");
+  click('[data-sd-audio="ambient"]');
+  bad(app, !/^Audio: ambient sound/m.test(out()), "환경음 선택이 반영되지 않음");
+  bad(app, d.getElementById("sdNote").hidden, "오디오를 골랐는데 메모 입력칸이 안 보임");
   click('[data-sd-audio="dialogue"]');
   fill("#sdNote", "footsteps on wet pavement");
   bad(app, !/Footsteps on wet pavement\./.test(out()), "오디오 메모가 반영되지 않음");
+  click('[data-sd-audio="none"]');
+  bad(app, /Audio/.test(out()), "무음으로 되돌렸는데 Audio 줄이 남음");
+  bad(app, !d.getElementById("sdNote").hidden, "무음인데 메모 입력칸이 보임");
 
   // i2v 참조 유지 수준
   if (app === "i2v") {
@@ -132,7 +136,7 @@ for (const app of ["t2v", "i2v"]) {
   const txt = out();
   console.log(`\n──────── ${app} · 구간 미입력\n${txt.split("\n").map(l => "  | " + l).join("\n")}`);
   bad(app, /\n\n/.test(txt) || /\s{2,}/.test(txt), "빈 줄/공백이 남음");
-  bad(app, !/^Audio: /m.test(txt), "구간이 없어도 Audio 줄은 있어야 함");
+  bad(app, /^Audio: /m.test(txt), "오디오 미선택인데 Audio 줄이 나옴");
   bad(app, /^\s|undefined|NaN/.test(txt), "앞쪽 공백 또는 undefined 누출");
 }
 

@@ -1100,12 +1100,14 @@ let conflictNotice=null;   // 충돌로 방금 자동 해제된 항목 (안내�
    (1.0/1.5 는 무음·단일 숏이라 이 입력이 의미가 없다). 그 값들은 피사체 한 줄에서
    만들어낼 수 없으므로 별도 입력으로 받는다. seedance 모델일 때만 화면에 나온다. */
 const SD_TIMES={2:["0-3s","3-6s"], 3:["0-3s","3-6s","6-10s"]};
+/* 오디오는 고른 사람만 받는다 — 기본값 '무음'에서는 Audio 줄 자체를 내보내지 않는다.
+   지시하지 않은 소리를 모델이 알아서 깔게 두는 편이 낫고, 프롬프트도 짧아진다. */
 const SD_AUDIO={
-  none:    "silent, no sound design.",
+  none:    "",
   ambient: "ambient sound that matches the scene. No dialogue.",
   dialogue:"ambient sound that matches the scene, with natural dialogue.",
 };
-let sd={count:2, segs:["","",""], audio:"ambient", note:"", preserve:"strict"};
+let sd={count:2, segs:["","",""], audio:"none", note:"", preserve:"strict"};
 
 /* 입력한 장면 묘사와 선택 항목이 정면으로 모순되는지 검사한다.
    예: "a wide shot of a mountain range" 라고 써놓고 익스트림 클로즈업을 고른 경우 */
@@ -1360,14 +1362,6 @@ document.getElementById("scope").innerHTML =
      ><svg class="ic" aria-hidden="true"><use href="#i-no-text"/></svg>텍스트 방지</button>`;
 
 /* ── 이벤트 ── */
-/* 1번 입력과 2번 출력 설정은 결과 레일 안에 있고 기본은 펼침이다.
-   모바일에서도 위치를 옮기지 않고 전체 화면 결과 패널 안에서 그대로 쓴다. */
-const profileBox=document.getElementById("profileBox");
-const profileHead=document.getElementById("profileHead");
-function setProfileOpen(open){
-  profileBox.classList.toggle("open",open);
-  profileHead.setAttribute("aria-expanded",open);
-}
 
 /* 현재 선택 목록 — 기본은 개수만 보여주고, 개별 해제가 필요할 때 편다.
    왼쪽에 칩이 켜져 있고 섹션마다 개수 뱃지가 있어 상시 노출할 이유가 없다. */
@@ -1432,9 +1426,6 @@ document.addEventListener("click",e=>{
   }
   // 메뉴 밖을 누르면 닫고, 원래 하려던 동작은 그대로 이어간다
   if(!t.closest("#builderMenu")) setBuilderOpen(false);
-  if(t.closest("#profileHead")){
-    setProfileOpen(!profileBox.classList.contains("open")); return;
-  }
   if(t.closest("#selSumHead")){
     setSelSumOpen(!selSumBox.classList.contains("open")); saveState(); return;
   }
@@ -1737,7 +1728,7 @@ function reset(){
   wizPick={}; syncWizUI();
   activePreset=null; syncPresetUI();
   document.getElementById("subject").value="";
-  sd={count:2, segs:["","",""], audio:"ambient", note:"", preserve:"strict"}; redrawSd();
+  sd={count:2, segs:["","",""], audio:"none", note:"", preserve:"strict"}; redrawSd();
   document.getElementById("search").value=""; query=""; openBeforeSearch=null;
   manualEdits=false; replacedNotice=false; lastApplied=null; conflictNotice=null;
   sync();
@@ -1772,7 +1763,7 @@ function buildSdPanel(){
     +opts.map(([v,t])=>`<button data-sd-${name}="${v}">${t}</button>`).join("")
     +`</div>`;
   box.innerHTML=
-     seg("시간 구간","count",[["2","2구간 · 6초"],["3","3구간 · 10초"]])
+     seg("연속숏 시간구간","count",[["2","2구간 · 6초"],["3","3구간 · 10초"]])
     +`<div class="sd-segs" id="sdSegs"></div>`
     +seg("오디오","audio",[["none","무음"],["ambient","환경음"],["dialogue","환경음+대사"]])
     +`<input class="sd-note" id="sdNote" aria-label="효과음·대사 메모"
@@ -1921,7 +1912,6 @@ function syncOutput(){
   document.getElementById("modeHelp").textContent=model.help
     +" 간결은 장비의 시각효과 설명을 생략하며, 선택한 항목 자체는 모두 포함합니다.";
   const summary=`${model.label} · ${outputLength==="short"?"간결":"상세"}`;
-  document.getElementById("profileHeadSum").textContent=summary;
 
   // '텍스트 방지' — 부정형을 지원하지 않는 모델에서는 비활성화한다
   const gb=document.getElementById("guardBtn");
@@ -1990,9 +1980,10 @@ function syncOutput(){
   const lim=model.limit || {short:80, detail:150};
   const limit=lim[outputLength];
   const long=words>limit;
+  /* '0개 출력 중' 은 무언가 잘못된 것처럼 읽힌다 — 아직 안 골랐을 뿐이다 */
   const outputStatus = blocked
     ? `${total}개 선택됨 · ${CONFIG.shortLabel||CONFIG.subjectLabel} 입력 대기`
-    : `${total}개 출력 중 · 약 ${words}단어`;
+    : `${total ? `${total}개 출력 중` : "선택 없음"} · 약 ${words}단어`;
   OUT_LAB.innerHTML =
     `생성된 프롬프트 <span>${summary}</span> <b>${outputStatus}</b>`
     + (long ? `<i class="lw">권장 길이보다 길어요 — `
@@ -2127,8 +2118,10 @@ function sdSegments(){
     .filter(s=>s.text);
 }
 function sdAudioLine(){
+  const body=SD_AUDIO[sd.audio];
+  if(!body) return "";                     // 무음 — 줄 자체를 만들지 않는다 (메모 입력칸도 숨는다)
   const note=sd.note.trim();
-  return "Audio: "+SD_AUDIO[sd.audio]+(note ? " "+dot(cap(note)) : "");
+  return "Audio: "+body+(note ? " "+dot(cap(note)) : "");
 }
 function sdPrompt({head, camera, style, keep}){
   const lines=[];
@@ -2136,7 +2129,8 @@ function sdPrompt({head, camera, style, keep}){
   sdSegments().forEach(s=>lines.push(`${s.time}: ${dot(cap(s.text))}`));
   if(camera) lines.push(dot("Camera: "+camera));
   if(style)  lines.push(dot("Style: "+style));
-  lines.push(sdAudioLine());
+  const audio=sdAudioLine();
+  if(audio)  lines.push(audio);
   if(keep)   lines.push(keep);
   return lines.join("\n");
 }
