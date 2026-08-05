@@ -1091,6 +1091,7 @@ const WIZ = CONFIG.wiz.map(s=>({
 let level="easy", query="", wizPick={}, guardOn=true;
 let modelKey=CONFIG.models[0].key, outputLength="short";
 let undoStack=[], manualEdits=false, replacedNotice=false, openBeforeSearch=null;
+let undoHigh=0;   // 이번에 쌓인 되돌리기 단계의 최대치 (버튼의 N/M 중 M)
 let lastApplied=null;   // 가이드가 방금 적용한 내용 (안내용)
 let activePreset=null, subjectEditSnapshot=null;
 let conflictNotice=null;   // 충돌로 방금 자동 해제된 항목 (안내용)
@@ -1179,7 +1180,8 @@ const APP_ID=document.documentElement.dataset.app||"image";
 const THIS_APP=APPS.find(a=>a.id===APP_ID)||APPS[0];
 document.getElementById("appTitleText").textContent=plainTitle(CONFIG.title);
 document.getElementById("brandUse").setAttribute("href","#"+THIS_APP.icon);
-document.getElementById("appSub").textContent=CONFIG.sub;
+/* 앱 설명(CONFIG.sub)은 화면에서 뺐다 — 제목과 아이콘이 이미 같은 말을 한다.
+   검색·공유용 <meta description> 은 엔트리 HTML 에 그대로 남아 있다. */
 document.getElementById("subject").placeholder=CONFIG.subjectPlaceholder;
 document.getElementById("subject").setAttribute("aria-label",CONFIG.subjectLabel);
 const subjectFieldLabel=document.getElementById("subjectFieldLabel");
@@ -1973,7 +1975,25 @@ function syncOutput(){
       if(hit.length) inputNotes.push({t:`${r.msg(m[0])} — ${hit.join(", ")}`, tone:"warn"}); }
   });
 
-  document.getElementById("undoBtn").disabled=undoStack.length===0;
+  /* 되돌리기 — '되돌리기' 라는 글자는 아이콘이 이미 말한다.
+     대신 몇 단계 남았는지를 숫자로 준다: 남은 단계 / 이번에 쌓인 최대 단계.
+     되돌릴수록 앞 숫자만 줄어 어디까지 왔는지 보인다. */
+  const undoBtn=document.getElementById("undoBtn");
+  undoBtn.disabled=undoStack.length===0;
+  undoHigh=Math.max(undoHigh, undoStack.length);
+  if(!undoStack.length) undoHigh=0;
+  document.getElementById("undoCount").textContent=`${undoStack.length}/${undoHigh}`;
+  undoBtn.title=undoStack.length
+    ? `되돌리기 — ${undoStack.length}단계 남음 (이번에 ${undoHigh}단계까지 쌓임)`
+    : "되돌릴 단계가 없습니다";
+
+  /* 출력 범위 빠른 선택 — 지금 범위와 정확히 같은 묶음을 눌린 상태로 둔다.
+     누르고 나면 어느 것이 적용됐는지 알 수 없던 문제. */
+  document.querySelectorAll("[data-quick]").forEach(b=>{
+    const set=CONFIG.quick[b.dataset.quick];
+    const on=ORDER.every(id=>scope[id]===set.includes(id));
+    b.classList.toggle("on",on); b.setAttribute("aria-pressed",on);
+  });
 
   const shortWords=wordCount(buildForLength("short"));
   const detailWords=wordCount(buildForLength("detail"));
@@ -1999,12 +2019,11 @@ function syncOutput(){
     t:"권장 길이보다 길어요 — "+(outputLength==="short"?"항목을 줄이세요":"간결 모드 권장"),
     tone:"warn"});
   // 확인 문구는 맨 뒤 — 고쳐야 할 것이 있으면 그쪽이 먼저 보여야 한다
-  if(lastApplied){
-    const all=DATA.reduce((n,s)=>n+state[s.id].size,0);
-    const extra = all>lastApplied.items.length ? ` · 현재 총 ${all}개` : "";
-    resultNotes.push({t:`${lastApplied.label} → ${lastApplied.items.length}개 적용${extra}`
+  /* '현재 총 N개' 는 빼둔다 — '현재 선택' 이 같은 수를 더 정확히(출력 제외분까지)
+     세고 있어서, 두 숫자가 어긋나 보이면 어느 쪽을 믿을지 헷갈린다. */
+  if(lastApplied) resultNotes.push({
+    t:`${lastApplied.label} → ${lastApplied.items.length}개 적용`
       +`${lastApplied.why?" · "+lastApplied.why:""}\n${lastApplied.items.join(" · ")}`, tone:"ok"});
-  }
   /* blocked 조건은 warnEmptySubject 와 같아서 따로 말하지 않는다 —
      그 문구가 이미 입력칸 옆에 떠 있고, .need 로 입력칸도 함께 표시된다. */
   setNote(SUBJECT_NOTE, inputNotes);

@@ -38,11 +38,21 @@ for (const app of ["image", "t2v", "i2v"]) {
   // 개수·단어수는 걷어냈다 (간결/상세 버튼이 이미 단어수를 말한다)
   const labText = d.getElementById("outLab").textContent;
   if (/출력 중|단어|선택 없음/.test(labText)) errs.push(`제목에 중복 정보가 남음: "${labText}"`);
-  // 화면 테마는 헤더로 옮겼다 — 레일에 남아 있으면 안 된다
-  if (!d.querySelector("header #themeSwitch")) errs.push("themeSwitch 가 헤더에 없음");
+  // 화면 테마는 앱 제목 바로 옆(.brand 안) — 모바일에서도 제목과 같은 줄에 남는다
+  if (!d.querySelector(".brand > #themeSwitch")) errs.push("themeSwitch 가 제목 옆에 없음");
   if (d.querySelector("#outPanel #themeSwitch")) errs.push("themeSwitch 가 레일에 남아 있음");
-  // 출력 밀도는 프롬프트 제목 옆으로 갔다
-  if (!d.querySelector(".out-top [data-length]")) errs.push("출력 밀도 스위치가 제목 옆에 없음");
+  // 출력 밀도는 하단 스티키 2열로 갔다
+  if (!d.querySelector(".out-actions [data-length]")) errs.push("출력 밀도가 하단 버튼 영역에 없음");
+  if (d.querySelector(".out-top [data-length]")) errs.push("출력 밀도가 제목 옆에 남아 있음");
+  if (d.querySelectorAll(".out-actions .out-actions-row").length !== 2)
+    errs.push("하단 버튼 영역이 2열이 아님");
+  // 앱 설명문구는 걷어냈다
+  if (d.getElementById("appSub")) errs.push("앱 설명문구가 남아 있음");
+  // 되돌리기는 글자 대신 카운트
+  const undo = d.getElementById("undoBtn");
+  if (!d.getElementById("undoCount")) errs.push("되돌리기 카운트가 없음");
+  if (/되돌리기/.test(undo.textContent)) errs.push("되돌리기 버튼에 글자 레이블이 남음");
+  if (!/^\d+\/\d+$/.test(undo.textContent.trim())) errs.push(`되돌리기 표기가 N/M 이 아님: "${undo.textContent.trim()}"`);
 
   console.log(app, errs.length ? "ERRORS: " + errs.join(" || ") : "OK", JSON.stringify(counts));
   if (errs.length) fail = 1;

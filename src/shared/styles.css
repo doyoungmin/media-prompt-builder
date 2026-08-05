@@ -71,7 +71,7 @@
      폭이 모자라면 탭 묶음이 아랫줄로 넘어간다(1040px 하한에서도 겹치지 않는다). */
   header{display:flex;align-items:center;flex-wrap:wrap;gap:var(--sp3) var(--sp5);
     margin-bottom:var(--sp4);min-width:0}
-  .brand{display:flex;align-items:center;gap:var(--sp3);min-width:0;flex:1 1 260px}
+  .brand{display:flex;align-items:center;gap:var(--sp3);min-width:0;flex:1 1 auto}
   /* 제목 덩이(제목 22 + 설명 12 ≈ 51px)를 채우는 크기.
      24 격자를 46px 로 키우면 선이 그만큼 굵어지므로 stroke 를 1.5 → 1.25 로 낮춰
      본문 아이콘과 시각적 무게를 맞춘다. */
@@ -80,15 +80,14 @@
   .brand-tx{position:relative;min-width:0}
   header h1{margin:0;font-size:22px;font-weight:700;line-height:1.25;letter-spacing:-.02em;
     color:var(--tx);min-width:0}
-  .sub{min-width:0;color:var(--tx3);font-size:12px;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
 
   /* ── 빌더 전환 ── 제목 자체가 여는 버튼이다.
      제목과 전환 대상이 같은 것을 가리키므로 따로 떼어 둘 이유가 없다. */
   .brand-btn{display:flex;align-items:center;gap:var(--sp2);max-width:100%;
     margin:0 -8px;padding:2px 8px;border:0;border-radius:var(--r1);background:none;
     color:inherit;font:inherit;letter-spacing:inherit;cursor:pointer;transition:.15s}
-  .brand-btn>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .brand-btn>span{min-width:0;white-space:normal;overflow-wrap:break-word}
   .brand-btn:hover{background:var(--s1)}
   .brand-btn:focus-visible{outline:2px solid var(--acc2);outline-offset:-2px}
   .caret{width:18px;height:18px;color:var(--tx3);transition:.2s}
@@ -526,18 +525,20 @@
   .out .out-lab{display:flex;align-items:baseline;gap:var(--sp3);flex:1 1 100%;min-width:0;
     font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--tx3);line-height:1.45}
   .out .out-lab>.note{margin-left:auto;letter-spacing:0}
-  /* 출력 밀도 — 제목 옆의 작은 스위치. 레일 폭을 먹지 않게 내용 크기로 둔다 */
-  .out .len-switch{flex:0 0 auto;height:28px;min-height:28px;padding:2px}
-  .out .len-switch button{padding:0 10px;font-size:11px;line-height:22px}
 
   /* 동작 버튼 — 레일 맨 아래 고정. 프롬프트가 길어져도 복사가 화면에 남는다 */
   .out-in>.out-actions{position:sticky;bottom:0;z-index:5;
-    display:flex;flex:0 0 auto;gap:var(--sp2);
+    display:flex;flex-direction:column;flex:0 0 auto;gap:var(--sp2);
     margin:0 calc(var(--railpad) * -1) calc(var(--railpad) * -1);
     padding:var(--sp3) var(--railpad);
     background:var(--bg);border-top:1px solid var(--hair)}
+  .out-actions-row{display:flex;align-items:stretch;gap:var(--sp2)}
   .out-in>.out-actions button.act{flex:1 1 0;min-height:34px;padding:0 9px;font-size:12px}
   .out-in>.out-actions button.copy{flex:1.7 1 0}
+  /* 되돌리기는 숫자만 — 아이콘이 이미 뜻을 말한다 */
+  #undoCount{font-variant-numeric:tabular-nums;font-weight:700}
+  .out-actions .len-switch{flex:1 1 0;height:34px;min-height:34px;padding:3px}
+  .out-actions .len-switch button{padding:0 8px;font-size:11px;line-height:26px}
 
   /* 대상 모델 — 레일 최상단 */
   .out .model-box{display:flex;flex-direction:column;flex:0 0 auto;width:100%;gap:5px}
@@ -549,7 +550,7 @@
 
 
   /* ── 화면 테마 ── 헤더 가운데. 이름표 없이 아이콘만 두고 뜻은 툴팁·aria-label 로 넘긴다. */
-  .theme-switch{display:flex;flex:0 0 auto;align-items:center;gap:2px;margin:0 auto;
+  .theme-switch{display:flex;flex:0 0 auto;align-items:center;gap:2px;
     background:var(--s1);border-radius:var(--r1);padding:2px}
   .theme-option{display:inline-flex;align-items:center;justify-content:center;
     width:30px;height:30px;padding:0;border:1px solid transparent;border-radius:var(--r1);
@@ -636,7 +637,6 @@
     .brand{flex:1 1 100%;width:100%;gap:10px}
     .brand-ic{width:38px;height:38px}
     header h1{font-size:18px}
-    .sub{font-size:11px}
     .builder-menu{min-width:min(300px,calc(100vw - 28px))}
     .modetabs{flex:1 1 100%;width:100%;overflow-x:auto}
     .modetab{flex:1 1 0;min-width:0;padding:10px 6px;font-size:12px;gap:5px}
