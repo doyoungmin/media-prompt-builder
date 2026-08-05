@@ -71,7 +71,7 @@
      폭이 모자라면 탭 묶음이 아랫줄로 넘어간다(1040px 하한에서도 겹치지 않는다). */
   header{display:flex;align-items:center;flex-wrap:wrap;gap:var(--sp3) var(--sp5);
     margin-bottom:var(--sp4);min-width:0}
-  .brand{display:flex;align-items:center;gap:var(--sp3);min-width:0;flex:1 1 auto}
+  .brand{display:flex;align-items:center;gap:var(--sp3);min-width:0;flex:0 1 auto}
   /* 제목 덩이(제목 22 + 설명 12 ≈ 51px)를 채우는 크기.
      24 격자를 46px 로 키우면 선이 그만큼 굵어지므로 stroke 를 1.5 → 1.25 로 낮춰
      본문 아이콘과 시각적 무게를 맞춘다. */
@@ -87,7 +87,7 @@
   .brand-btn{display:flex;align-items:center;gap:var(--sp2);max-width:100%;
     margin:0 -8px;padding:2px 8px;border:0;border-radius:var(--r1);background:none;
     color:inherit;font:inherit;letter-spacing:inherit;cursor:pointer;transition:.15s}
-  .brand-btn>span{min-width:0;white-space:normal;overflow-wrap:break-word}
+  .brand-btn>span{min-width:0;white-space:nowrap}
   .brand-btn:hover{background:var(--s1)}
   .brand-btn:focus-visible{outline:2px solid var(--acc2);outline-offset:-2px}
   .caret{width:18px;height:18px;color:var(--tx3);transition:.2s}
@@ -476,8 +476,10 @@
   .out-in>.scope .scope-lab{display:flex;align-items:center;gap:var(--sp2);
     flex:1 0 100%;margin:0 0 var(--sp1);
     font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--tx3)}
-  .out-in>.scope .divider{display:block;width:1px;height:16px;margin:0 var(--sp2);
-    background:var(--hair)}
+  /* 다섯 묶음이 레일 폭을 넘으므로 접히는 세그먼트로 둔다 */
+  .out-in>.scope .scope-quick{flex:1 0 100%;flex-wrap:wrap;margin:0 0 var(--sp2)}
+  .out-in>.scope .scope-quick button{flex:1 1 auto;min-width:0;
+    padding:6px 8px;font-size:11px;line-height:1.3}
   .out-in>.scope .sc{display:inline-flex;align-items:center;gap:6px;
     padding:5px 9px;border-radius:var(--r1);font-size:11px}
   /* 가이드·룩 탭에서는 섹션이 보이지 않으므로, 무엇이 빠졌는지 여기서 알린다 */
@@ -527,7 +529,9 @@
   .out .out-lab>.note{margin-left:auto;letter-spacing:0}
 
   /* 동작 버튼 — 레일 맨 아래 고정. 프롬프트가 길어져도 복사가 화면에 남는다 */
-  .out-in>.out-actions{position:sticky;bottom:0;z-index:5;
+  /* margin-top:auto — 내용이 짧아 레일이 남을 때도 바닥에 붙어 있게 한다.
+     (sticky 만으로는 스크롤이 없을 때 내용 바로 뒤에 떠 버린다) */
+  .out-in>.out-actions{position:sticky;bottom:0;z-index:5;margin-top:auto;
     display:flex;flex-direction:column;flex:0 0 auto;gap:var(--sp2);
     margin:0 calc(var(--railpad) * -1) calc(var(--railpad) * -1);
     padding:var(--sp3) var(--railpad);
@@ -537,8 +541,10 @@
   .out-in>.out-actions button.copy{flex:1.7 1 0}
   /* 되돌리기는 숫자만 — 아이콘이 이미 뜻을 말한다 */
   #undoCount{font-variant-numeric:tabular-nums;font-weight:700}
-  .out-actions .len-switch{flex:1 1 0;height:34px;min-height:34px;padding:3px}
-  .out-actions .len-switch button{padding:0 8px;font-size:11px;line-height:26px}
+  /* 높이를 못 박지 않고 줄에 맞춰 늘린다 — 복사 버튼과 눈높이가 어긋나던 부분 */
+  .out-actions .len-switch{flex:1 1 0;align-self:stretch;height:auto;min-height:34px;padding:3px}
+  .out-actions .len-switch button{display:flex;align-items:center;justify-content:center;
+    padding:0 8px;font-size:11px;line-height:1.2}
 
   /* 대상 모델 — 레일 최상단 */
   .out .model-box{display:flex;flex-direction:column;flex:0 0 auto;width:100%;gap:5px}
@@ -635,6 +641,8 @@
     .wrap{display:block;min-height:100vh;margin:0;padding:12px 14px 96px}
     header{align-items:flex-start;gap:var(--sp3);padding-bottom:var(--sp3);margin-bottom:var(--sp3)}
     .brand{flex:1 1 100%;width:100%;gap:10px}
+    /* 좁은 화면에서는 넘치느니 접는다 (넓은 화면은 nowrap 유지) */
+    .brand-btn>span{white-space:normal;overflow-wrap:break-word}
     .brand-ic{width:38px;height:38px}
     header h1{font-size:18px}
     .builder-menu{min-width:min(300px,calc(100vw - 28px))}
@@ -685,6 +693,7 @@
     .out .subject-box input{min-height:44px}
     .out-in>.out-top{margin-bottom:calc(var(--sp4) * -1 + var(--sp2))}
     .out-in>.out-actions button.act{min-height:42px}
+    .out-actions .len-switch{min-height:42px}
     .out-in>#prompt{flex:0 0 auto;min-height:240px;max-height:none;font-size:13px}
     .out-in>.selsum-box.open>.selsum{max-height:180px}
     .theme-option{width:36px;height:36px}

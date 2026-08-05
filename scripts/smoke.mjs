@@ -35,6 +35,12 @@ for (const app of ["image", "t2v", "i2v"]) {
   if (!d.querySelector(".subject-box > #subjectNote")) errs.push("입력 안내 자리가 없음");
   if (!d.querySelector("#outLab > #outNote")) errs.push("결과 안내 자리가 없음");
   if (!d.querySelector(".scope-lab > #scopeOff")) errs.push("제외 문구가 출력 범위 라벨 옆에 없음");
+  /* 출력 범위 묶음은 하나만 걸리므로 탭(세그먼트) — 텍스트 방지만 세그먼트 밖 토글로 남는다 */
+  const quicks = [...d.querySelectorAll("[data-quick]")];
+  if (!quicks.length || !quicks.every(b => b.closest(".seg.scope-quick")))
+    errs.push("출력 범위 묶음이 세그먼트 안에 없음");
+  if (d.querySelector(".scope-quick #guardBtn")) errs.push("텍스트 방지가 세그먼트 안에 들어감");
+  if (!d.querySelector("#scope > #guardBtn")) errs.push("텍스트 방지 토글이 없음");
   // 개수·단어수는 걷어냈다 (간결/상세 버튼이 이미 단어수를 말한다)
   const labText = d.getElementById("outLab").textContent;
   if (/출력 중|단어|선택 없음/.test(labText)) errs.push(`제목에 중복 정보가 남음: "${labText}"`);

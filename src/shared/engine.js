@@ -1357,8 +1357,11 @@ const SEC_SHORT=CONFIG.short;
 document.getElementById("scope").innerHTML =
   // 제외 목록은 '출력 범위' 라벨 줄의 오른쪽 끝에 붙인다 (빠진 게 있다는 사실이 제목과 한 줄)
   `<span class="scope-lab">출력 범위<span class="scope-off" id="scopeOff"></span></span>` +
-  Object.keys(CONFIG.quick).map(k=>`<button class="sc quick" data-quick="${k}">${k}</button>`).join("") +
-  `<span class="divider"></span>
+  /* 묶음은 한 번에 하나만 걸리므로 낱개 칩이 아니라 탭(세그먼트)으로 둔다.
+     '텍스트 방지'는 성격이 다른 켬/끔이라 세그먼트 밖에 남긴다. */
+  `<div class="seg scope-quick" role="group" aria-label="출력 범위 묶음">` +
+  Object.keys(CONFIG.quick).map(k=>`<button data-quick="${k}">${k}</button>`).join("") +
+  `</div>
    <button class="sc on" id="guardBtn" aria-pressed="true"
      title="프롬프트 끝에 텍스트·워터마크·카메라 UI가 화면에 그려지는 것을 막는 문구를 추가합니다"
      ><svg class="ic" aria-hidden="true"><use href="#i-no-text"/></svg>텍스트 방지</button>`;
