@@ -422,7 +422,7 @@
   .tag.off{opacity:.78;text-decoration:line-through;border-style:dashed;color:var(--warn)}
 
   /* ── 우측 결과 레일 ── 하단 고정 패널을 우측 레일로 바꿔 작업 영역을 가리지 않는다. */
-  .out-in{height:100%;padding:var(--railpad);
+  .out-in{height:100%;padding:var(--railpad) var(--railpad) 0;
     display:flex;flex-direction:column;gap:var(--sp5);
     overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--hair-strong) transparent}
   .out-in::-webkit-scrollbar{width:10px}
@@ -529,11 +529,14 @@
   .out .out-lab>.note{margin-left:auto;letter-spacing:0}
 
   /* 동작 버튼 — 레일 맨 아래 고정. 프롬프트가 길어져도 복사가 화면에 남는다 */
-  /* margin-top:auto — 내용이 짧아 레일이 남을 때도 바닥에 붙어 있게 한다.
-     (sticky 만으로는 스크롤이 없을 때 내용 바로 뒤에 떠 버린다) */
-  .out-in>.out-actions{position:sticky;bottom:0;z-index:5;margin-top:auto;
+  /* 항상 레일 바닥에 붙는다.
+       margin 의 top:auto — 내용이 짧아 자리가 남을 때 그 여백을 위로 몰아준다.
+       sticky bottom:0 — 내용이 길어 스크롤될 때 화면에 남는다.
+     둘을 한 shorthand 로 쓴다. 예전에 margin-top:auto 를 따로 선언했다가
+     뒤따르는 margin shorthand 에 지워져 '항상 바닥' 이 동작하지 않았다. */
+  .out-in>.out-actions{position:sticky;bottom:0;z-index:5;
     display:flex;flex-direction:column;flex:0 0 auto;gap:var(--sp2);
-    margin:0 calc(var(--railpad) * -1) calc(var(--railpad) * -1);
+    margin:auto calc(var(--railpad) * -1) 0;
     padding:var(--sp3) var(--railpad);
     background:var(--bg);border-top:1px solid var(--hair)}
   .out-actions-row{display:flex;align-items:stretch;gap:var(--sp2)}
@@ -618,7 +621,7 @@
 
   /* 세로 여유가 없는 창(노트북 대부분) — 여백과 보조 설명을 좁혀 스크롤을 없앤다 */
   @media(max-height:940px){
-    .out-in{--railpad:var(--sp3);padding:var(--railpad);gap:var(--sp4)}
+    .out-in{--railpad:var(--sp3);padding:var(--railpad) var(--railpad) 0;gap:var(--sp4)}
     .out .subject-box{padding:0}
     .out .subject-box input{margin-top:var(--sp1);padding:9px 10px}
     /* 보조 설명은 지우지 않고 촘촘하게 — 처음 쓰는 사람에게 필요한 내용이다 */

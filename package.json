@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "extract-assets": "node scripts/extract-assets.mjs",
     "test:smoke": "node scripts/smoke.mjs",
-    "verify:seedance": "node scripts/verify-seedance.mjs"
+    "verify:seedance": "node scripts/verify-seedance.mjs",
+    "lint:css": "node scripts/lint-css.mjs"
   },
   "devDependencies": {
     "acorn": "^8.18.0",
