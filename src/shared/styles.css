@@ -72,10 +72,9 @@
   header{display:flex;align-items:center;flex-wrap:wrap;gap:var(--sp3) var(--sp5);
     margin-bottom:var(--sp4);min-width:0}
   .brand{display:flex;align-items:center;gap:var(--sp3);min-width:0;flex:0 1 auto}
-  /* 앱별 64px 브랜드 아이콘을 데스크톱 46px, 모바일 38px로 표시한다.
-     밝은 테마에서는 원본을 파괴하지 않고 흑백만 반전해 밝은 타일·어두운 심볼로 맞춘다. */
+  /* 배경 프레임 없이 심볼만 표시한다. 다크에서는 흰색, 라이트에서는 반전한 어두운색이다. */
   .brand-ic{display:block;width:46px;height:46px;flex:0 0 auto;object-fit:contain;
-    border-radius:var(--r1);transition:filter .15s}
+    transition:filter .15s}
   :root[data-theme="light"] .brand-ic{filter:invert(1)}
   .brand-tx{position:relative;min-width:0;flex:1 1 auto}
   header h1{margin:0;font-size:22px;font-weight:700;line-height:1.25;letter-spacing:-.02em;

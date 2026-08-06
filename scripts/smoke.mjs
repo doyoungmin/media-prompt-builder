@@ -5,9 +5,9 @@ import { compose } from "./compose-engine.mjs";
 
 let fail = 0;
 const brandIcons = {
-  image: "/app-icons/t2i.svg",
-  t2v: "/app-icons/t2v.svg",
-  i2v: "/app-icons/i2v.svg",
+  image: "/app-icons/t2i.svg?v=2",
+  t2v: "/app-icons/t2v.svg?v=2",
+  i2v: "/app-icons/i2v.svg?v=2",
 };
 for (const app of ["image", "t2v", "i2v"]) {
   const html = readFileSync(`${app}/index.html`, "utf-8")
