@@ -377,11 +377,22 @@ const cam = (cx,cy,r=3.6) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${PV_
 const tripod = (cx,cy) => cam(cx,cy)+
   `<path d="M${cx} ${cy+3} L${cx-7} ${cy+9} M${cx} ${cy+3} L${cx+7} ${cy+9} M${cx} ${cy+3} V${cy+9}"`+
   ` stroke="${PV_C}" stroke-width="1.8" stroke-linecap="round"/>`;
-/* 회전 화살표 — 호 + 끝의 갈매기. 팬·틸트가 '이동'이 아니라 '제자리 회전'임을 말한다 */
-const turn = (d,hx,hy,h1x,h1y,h2x,h2y) =>
-  `<path d="${d}" stroke="${PV_C}" stroke-width="2" fill="none"/>`+
-  `<path d="M${h1x} ${h1y} L${hx} ${hy} L${h2x} ${h2y}" fill="none" stroke="${PV_C}"`+
-  ` stroke-width="2" stroke-linejoin="miter"/>`;
+/* 회전 화살표 — 중심(cx,cy)·반지름 r 로 a0°에서 a1°까지 돈다.
+   팬·틸트가 '이동'이 아니라 '제자리 회전'임을 말한다.
+   머리는 끝점의 접선에서 계산한다 — 손으로 좌표를 적었더니 접선을 벗어나
+   화살표가 엉뚱한 데를 가리켰다(첫 판이 그래서 망가져 보였다). */
+const turn = (cx,cy,r,a0,a1) => {
+  const R=d=>d*Math.PI/180, P=a=>[cx+r*Math.cos(R(a)), cy+r*Math.sin(R(a))];
+  const [x0,y0]=P(a0), [x1,y1]=P(a1);
+  const large=Math.abs(a1-a0)>180?1:0, sweep=a1>a0?1:0, sg=sweep?1:-1;
+  const tx=-sg*Math.sin(R(a1)), ty=sg*Math.cos(R(a1));   // 끝점 접선(진행 방향)
+  const px=-ty, py=tx, h=3.2, bx=x1-tx*h, by=y1-ty*h;
+  const n=v=>+v.toFixed(2);
+  return `<path d="M${n(x0)} ${n(y0)} A${r} ${r} 0 ${large} ${sweep} ${n(x1)} ${n(y1)}"`+
+    ` stroke="${PV_C}" stroke-width="2" fill="none"/>`+
+    `<path d="M${n(bx+px*h)} ${n(by+py*h)} L${n(x1)} ${n(y1)} L${n(bx-px*h)} ${n(by-py*h)}"`+
+    ` fill="none" stroke="${PV_C}" stroke-width="2" stroke-linejoin="miter"/>`;
+};
 
 const PREVIEW = {
   /* ── 조리개: 배경 흐림 정도 ── */
@@ -439,11 +450,11 @@ const PREVIEW = {
   /* 위에서 내려다본 그림 — 삼각대에 못박힌 채 시야만 좌우로 도는 것 */
   "팬":             svg(tripod(32,30)+
                     `<path d="M32 27 L10 12 M32 27 L54 12" stroke="${PV_A}" stroke-width="1" stroke-dasharray="2 2"/>`+
-                    turn("M14 14 A24 24 0 0 1 50 14", 50.5,14, 47,10.5, 46.5,17)+frame),
+                    turn(32,30,22,215,325)+frame),
   /* 옆에서 본 그림 — 같은 자리에서 시야만 위아래로 도는 것 */
   "틸트":           svg(tripod(14,28)+
                     `<path d="M17 26 L56 26 M17 26 L52 8" stroke="${PV_A}" stroke-width="1" stroke-dasharray="2 2"/>`+
-                    turn("M40 24 A26 26 0 0 0 46 12", 46.5,11.5, 42.5,14.5, 48,16)+frame),
+                    turn(14,28,26,-5,-35)+frame),
   "핸드헬드":        svg(fig(32,16,6,14)+
                     `<path d="M8 34 q6 -6 12 0 q6 6 12 0 q6 -6 12 0 q6 6 12 0" stroke="${PV_C}" stroke-width="2" fill="none" stroke-linecap="round"/>`+frame),
   "스테디캠 롱테이크": svg(fig(38,16,6,14)+
@@ -502,8 +513,7 @@ const PREVIEW = {
   "60fps 부드럽게": svg(fig(32,18,5,11)+
                 `<path d="M6 34 h52" stroke="${PV_A}" stroke-width="1" stroke-dasharray="3 2"/>`+frame),
   /* 처음과 끝이 이어진다 — 닫힌 원형 화살표가 그 뜻을 그대로 말한다 */
-  "끊김 없는 루프": svg(fig(32,18,4.5,9)+
-                turn("M43 20 A11 11 0 1 1 38.2 10.9", 38.6,10.4, 34.4,13.6, 41,15)+frame),
+  "끊김 없는 루프": svg(fig(32,18,4.5,9)+turn(32,20,11,0,305)+frame),
   "피사체 정지":   svg(fig(32,16,6,14)+
                 [12,22,32].map(y=>arrow(4,y,20,y)+arrow(44,y,60,y)).join("")+frame),
   "카메라 고정 유지": svg(fig(44,15,5,11)+tripod(16,24)+frame),
