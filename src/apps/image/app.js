@@ -77,6 +77,13 @@ const GUIDE_IMG = {
   "자연 다큐":"/thumbs/t-070.webp",
   "제품":"/thumbs/t-071.webp",
   "풍경 / 자연":"/thumbs/t-072.webp",
+  /* ③ 구도 — 예전에는 도식이었다. 실제 사진이 구도를 훨씬 빨리 알려준다 */
+  "중심을 비껴 (삼분할)":"/thumbs/t-085.webp",
+  "정중앙 대칭":"/thumbs/t-086.webp",
+  "여백을 크게":"/thumbs/t-087.webp",
+  "선으로 시선 유도":"/thumbs/t-088.webp",
+  "무언가를 통해 보기":"/thumbs/t-089.webp",
+  "전경으로 깊이":"/thumbs/t-090.webp",
 };/*==SLOT:2==*/
 /* ── 프리셋 프리뷰 (400px 썸네일 임베딩) — embed_previews.py 가 생성 ── */
 const PRESET_IMG = {
