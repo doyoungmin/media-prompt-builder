@@ -333,27 +333,45 @@ const frame = "";
    Material Symbols(Sharp) 의 사람 픽토그램을 따른다 — 둥근 모서리 없이
    머리(원) · 어깨(넓은 사각) · 다리(좁은 사각) 세 덩이.
    총 높이는 예전과 같은 bh 라 부르는 쪽 좌표를 고칠 필요가 없다. */
-const fig = (cx,cy,r,bh) => {
-  const n = v => +v.toFixed(2);
-  /* 발끝은 예전(cy+1.1r+bh)과 같은 자리에 둔다 — 도식들이 바닥선·지평선을
-     그 높이에 맞춰 그려 두었다. 목 사이를 벌린 만큼 몸 높이에서 뺀다. */
-  const top=cy+r*1.25, h=bh-r*0.15, tw=r*2.3, lw=r*1.15, th=h*0.5;
-  return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${PV_S}"/>`+
-    (bh>0
-      ? `<rect x="${n(cx-tw/2)}" y="${n(top)}" width="${n(tw)}" height="${n(th)}" fill="${PV_S}"/>`
-       +`<rect x="${n(cx-lw/2)}" y="${n(top+th)}" width="${n(lw)}" height="${n(h-th)}" fill="${PV_S}"/>`
-      : "");
+/* ── 인물 ── Material Symbols 의 boy 아이콘 비율을 그대로 쓴다.
+   24 격자 원본: 머리끝 4 · 발 20 (전체 16) · 머리 r 1.75(중심 5.75)
+                 몸통 y 8.5~15 폭 6 · 다리 y 15~20 폭 4 · 어깨 라운드 2
+   전체 높이 T 하나로만 키우고 줄인다 — 가로·세로를 따로 잡으면 비율이 깨진다.
+   cx 는 좌우 중심, topY 는 머리 끝. */
+const person = (cx,topY,T) => {
+  const n=v=>+v.toFixed(2), s=T/16, X=v=>n(cx+v*s), Y=v=>n(topY+v*s), L=v=>n(v*s);
+  const rad=2*s, x0=cx-3*s;
+  return `<circle cx="${n(cx)}" cy="${Y(5.75-4)}" r="${L(1.75)}" fill="${PV_S}"/>`
+    +`<path d="M${n(x0)} ${n(topY+4.5*s+rad)} q0 ${n(-rad)} ${n(rad)} ${n(-rad)}`
+    +` h${L(2)} q${n(rad)} 0 ${n(rad)} ${n(rad)} V${Y(11)} H${n(x0)} Z" fill="${PV_S}"/>`
+    +`<rect x="${X(-2)}" y="${Y(11)}" width="${L(4)}" height="${L(5)}" fill="${PV_S}"/>`;
 };
+/* 예전 서명(머리 반지름 r · 몸 높이 bh)을 그대로 받는다 — 호출부 70여 곳을
+   건드리지 않으려는 것. 바운딩 박스(머리끝 cy-r, 발끝 cy+1.1r+bh)는 예전과
+   같아서 각 도식의 바닥선·지평선이 그대로 맞고, 안쪽 비율만 바로잡힌다.
+   bh<=0 은 얼굴만 그리는 클로즈업 계열이라 원을 그대로 둔다. */
+const fig = (cx,cy,r,bh) => bh>0
+  ? person(cx, cy-r, 2.1*r+bh)
+  : `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${PV_S}"/>`;
 /* 배경 줄무늬 — blur 로 심도를 표현 */
 const bg = b => `<defs><filter id="b${String(b).replace(".","_")}"><feGaussianBlur stdDeviation="${b}"/></filter></defs>`+
   `<g filter="url(#b${String(b).replace(".","_")})">`+
   [0,10,20,30,40,50,60].map(x=>`<rect x="${x}" y="2" width="5" height="36" fill="${PV_S}" opacity=".38"/>`).join("")+
   `</g>`;
-const arrow = (x1,y1,x2,y2,color=PV_C) =>
-  `<path d="M${x1} ${y1} L${x2} ${y2}" stroke="${color}" stroke-width="2" stroke-linecap="round"/>`+
-  `<path d="M${x2} ${y2} l${(x1-x2)*0.22-(y2-y1)*0.16} ${(y1-y2)*0.22+(x2-x1)*0.16} `+
-  `M${x2} ${y2} l${(x1-x2)*0.22+(y2-y1)*0.16} ${(y1-y2)*0.22-(x2-x1)*0.16}" `+
-  `stroke="${color}" stroke-width="2" stroke-linecap="round" fill="none"/>`;
+/* ── 화살표 ── Material Symbols 의 straight 아이콘을 따른다.
+   둥글림 없이(butt·miter) 곧은 축 + 작은 갈매기 머리.
+   머리 크기를 길이에 비례시키던 것을 고정값으로 바꿨다 — 긴 화살표일수록
+   머리만 커져서 무거워 보였다(짧은 화살표에서만 길이에 맞춰 줄인다). */
+const arrow = (x1,y1,x2,y2,color=PV_C) => {
+  const n=v=>+v.toFixed(2);
+  const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy)||1;
+  const ux=dx/len, uy=dy/len, px=-uy, py=ux;      // 진행 방향과 그 수직
+  const h=Math.min(3.4,len*0.4);                  // 머리 깊이 = 반폭
+  const bx=x2-ux*h, by=y2-uy*h;
+  return `<path d="M${n(x1)} ${n(y1)} L${n(x2)} ${n(y2)}" stroke="${color}" stroke-width="2" stroke-linecap="butt"/>`+
+    `<path d="M${n(bx+px*h)} ${n(by+py*h)} L${n(x2)} ${n(y2)} L${n(bx-px*h)} ${n(by-py*h)}" `+
+    `fill="none" stroke="${color}" stroke-width="2" stroke-linecap="butt" stroke-linejoin="miter"/>`;
+};
 const cam = (cx,cy,r=3.6) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${PV_C}"/>`;
 
 const PREVIEW = {
@@ -366,10 +384,13 @@ const PREVIEW = {
   "f/16 (전초점)":  svg(bg(0)+fig(32,17,7,14)+frame),
 
   /* ── 샷 사이즈: 프레임 안 인물 크기 ── */
-  "익스트림 와이드":   svg(`<path d="M2 32 h60" stroke="${PV_A}" stroke-width="1"/>`+fig(32,28,1.6,3.4)+frame),
-  "와이드 / 풀샷":     svg(`<path d="M2 34 h60" stroke="${PV_A}" stroke-width="1"/>`+fig(32,12,3.4,18)+frame),
-  "미디엄 샷":        svg(fig(32,10,5,29)+frame),
-  "미디엄 클로즈업":   svg(fig(32,13,7.5,26)+frame),
+  /* 샷 사이즈 — 예전에는 머리 크기를 키워 '가까움'을 표현했지만 그건 인물 비율을
+     깨는 방식이었다. 비율은 그대로 두고 인물을 통째로 키워 프레임이 자르게 한다.
+     실제 카메라가 다가가는 것과 같은 표현이라 뜻도 더 정확하다. */
+  "익스트림 와이드":   svg(`<path d="M2 32 h60" stroke="${PV_A}" stroke-width="1"/>`+person(32,25,7)+frame),
+  "와이드 / 풀샷":     svg(`<path d="M2 34 h60" stroke="${PV_A}" stroke-width="1"/>`+person(32,8,26)+frame),
+  "미디엄 샷":        svg(person(32,3,49.5)+frame),      // 허리 위가 프레임을 채운다
+  "미디엄 클로즈업":   svg(person(32,3,68)+frame),        // 가슴 위
   "클로즈업":         svg(fig(32,19,13,0)+frame),
   "익스트림 클로즈업": svg(`<circle cx="32" cy="20" r="24" fill="${PV_S}"/>`+
                       `<circle cx="32" cy="20" r="8" fill="#16181f"/>`+frame),
