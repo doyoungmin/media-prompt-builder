@@ -15,9 +15,9 @@ function engineCompose(): Plugin {
       const app = id.slice("\0virtual:engine-".length);
       // @ts-ignore — 순수 JS 헬퍼
       const { compose } = await import("./scripts/compose-engine.mjs");
-      this.addWatchFile(resolve(__dirname, "src/shared/engine.js"));
-      this.addWatchFile(resolve(__dirname, `src/apps/${app}/app.js`));
-      return compose(app, __dirname);
+      this.addWatchFile(resolve(import.meta.dirname, "src/shared/engine.js"));
+      this.addWatchFile(resolve(import.meta.dirname, `src/apps/${app}/app.js`));
+      return compose(app, import.meta.dirname);
     },
   };
 }
@@ -29,10 +29,10 @@ export default defineConfig({
     assetsInlineLimit: 0,
     rollupOptions: {
       input: {
-        index: resolve(__dirname, "index.html"),
-        image: resolve(__dirname, "image/index.html"),
-        t2v: resolve(__dirname, "t2v/index.html"),
-        i2v: resolve(__dirname, "i2v/index.html"),
+        index: resolve(import.meta.dirname, "index.html"),
+        image: resolve(import.meta.dirname, "image/index.html"),
+        t2v: resolve(import.meta.dirname, "t2v/index.html"),
+        i2v: resolve(import.meta.dirname, "i2v/index.html"),
       },
     },
   },

@@ -52,6 +52,23 @@ Seedance 2.0 은 1.0/1.5 와 달리 **네이티브 오디오·멀티숏·최대 
 > 참고: 1.0 / 1.5 Pro 는 무음·단일 숏이라 이 형식이 맞지 않는다. 그쪽 모델을 쓸 거라면
 > Veo 또는 범용 출력을 쓰는 편이 낫다.
 
+## 테스트
+
+| 명령 | 무엇을 보는가 |
+|---|---|
+| `npm run typecheck` | 타입 |
+| `npm run lint:css` | CSS 자책골(shorthand 가 longhand 를 덮어씀·주석 깨짐) |
+| `npm run test:smoke` | 3개 앱이 jsdom 에서 뜨는지 · 레일 순서 · 참조 자산 존재 |
+| `npm run verify:storage` `verify:copy` `verify:pwa` `verify:seedance` | 각 기능의 회귀 |
+| `npm run test:e2e` | **실제 브라우저**(Playwright) |
+
+`test:e2e` 만 볼 수 있는 것이 있다. jsdom 은 레이아웃을 계산하지 않아 겹침·넘침·
+고정 위치를 못 잡고, ESM 번들을 실행하지 못해 '빌드된 결과가 정말 도는지'도
+확인하지 못한다. 그래서 E2E 는 `vite preview` 로 **빌드 산출물**을 띄우고
+폭 1440·1100·900·768·430·360px 에서 검사한다.
+
+처음 한 번은 브라우저를 받아야 한다: `npx playwright install --with-deps chromium`
+
 ## 저장 상태 호환성
 
 앱별 작업 상태는 `prompt-builder:<app-id>` 키로 localStorage에 저장되고,
