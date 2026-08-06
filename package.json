@@ -15,6 +15,7 @@
     "test:smoke": "node scripts/smoke.mjs",
     "verify:storage": "node scripts/verify-storage.mjs",
     "verify:copy": "node scripts/verify-copy.mjs",
+    "verify:pwa": "node scripts/verify-pwa.mjs",
     "verify:seedance": "node scripts/verify-seedance.mjs",
     "lint:css": "node scripts/lint-css.mjs"
   },

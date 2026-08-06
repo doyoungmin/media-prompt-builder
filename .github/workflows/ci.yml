@@ -22,4 +22,5 @@ jobs:
       - run: npm run test:smoke
       - run: npm run verify:storage
       - run: npm run verify:copy
+      - run: npm run verify:pwa
       - run: npm run verify:seedance
