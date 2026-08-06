@@ -1,9 +1,17 @@
 /* 이식된 legacy.js 를 jsdom 에서 실행해 런타임 오류와 UI 생성 여부를 확인 */
 import { readFileSync, existsSync } from "node:fs";
 import { JSDOM } from "jsdom";
-import { compose } from "./compose-engine.mjs";
+import { compose, enginePartFiles } from "./compose-engine.mjs";
 
 let fail = 0;
+
+/* 엔진 조각은 ES 모듈이 아니라 이어 붙여 하나의 스크립트로 돈다.
+   조각 안에 import/export 가 들어가면 전체가 조용히 깨진다. */
+for (const f of enginePartFiles()) {
+  const src = readFileSync(`src/shared/engine/${f}`, "utf-8");
+  const bad = src.match(/^\s*(import|export)\s/m);
+  if (bad) { console.log(`engine/${f} ERRORS: 조각에 ${bad[1]} 가 있음 — 조각은 모듈이 아니다`); fail = 1; }
+}
 const brandIcons = {
   image: "/app-icons/image.svg?v=2",
   t2v: "/app-icons/t2v.svg?v=2",

@@ -15,8 +15,21 @@ npm run build            # dist/ 생성
 ## 구조
 
 - `image/ t2v/ i2v/` — 앱별 HTML 엔트리 (경로 = 앱 식별자)
-- `src/shared/engine.js` — 3개 앱 공통 엔진 1벌 (위저드·프롬프트 조립·SVG 프리뷰·저장).
-  `/*==SLOT:n==*/` 위치에 앱별 코드가 빌드 시 삽입된다 (vite.config.ts 의 engine-compose 플러그인)
+- `src/shared/engine/*.js` — 3개 앱 공통 엔진. 기능 단위로 나뉘어 있고
+  **파일명 앞 번호가 곧 실행 순서**다. 조각들은 ES 모듈이 아니라 이어 붙여
+  하나의 스크립트로 돌기 때문에 조각 안에 `import`/`export` 를 쓰면 안 된다
+  (스모크가 이를 검사한다). `/*==SLOT:n==*/` 위치에 앱별 코드가 삽입된다
+  (vite.config.ts 의 engine-compose 플러그인 · scripts/compose-engine.mjs)
+
+  | 조각 | 무엇 |
+  |---|---|
+  | `01-data.js` | 항목 데이터 — 세 앱이 함께 쓰는 원본 목록 |
+  | `02-preview.js` `03-preview-2.js` `04-preview-3.js` | 도식·색 스와치·효과 서술·레퍼런스 룩·충돌 규칙 (SLOT 3곳) |
+  | `05-derive.js` | 앱 설정으로 걸러 낸 파생 상태 |
+  | `06-render.js` | 화면 생성 |
+  | `07-events.js` | 이벤트·선택·되돌리기 |
+  | `08-sync.js` | 동기화·Seedance 패널·저장·테마 |
+  | `09-prompt.js` | 프롬프트 조립과 복사 |
 - `src/apps/*/app.js` — 앱별 차이만 담은 코드 (CONFIG·프리셋·썸네일 맵). 옵션 수정은 여기서
 - `public/thumbs/` — 예시 사진 webp + `thumbs-map.json` (한글 키 → 파일명)
 

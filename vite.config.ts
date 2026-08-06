@@ -14,8 +14,10 @@ function engineCompose(): Plugin {
       if (!id.startsWith("\0virtual:engine-")) return;
       const app = id.slice("\0virtual:engine-".length);
       // @ts-ignore — 순수 JS 헬퍼
-      const { compose } = await import("./scripts/compose-engine.mjs");
-      this.addWatchFile(resolve(import.meta.dirname, "src/shared/engine.js"));
+      const { compose, enginePartFiles } = await import("./scripts/compose-engine.mjs");
+      // 엔진은 조각 여러 개다 — 하나만 감시하면 다른 조각을 고쳐도 다시 안 만든다
+      for (const f of enginePartFiles(import.meta.dirname))
+        this.addWatchFile(resolve(import.meta.dirname, `src/shared/engine/${f}`));
       this.addWatchFile(resolve(import.meta.dirname, `src/apps/${app}/app.js`));
       return compose(app, import.meta.dirname);
     },
