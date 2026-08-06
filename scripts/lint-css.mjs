@@ -62,13 +62,35 @@ export function findClobbered(css) {
   return hits;
 }
 
+/* 주석이 어긋나면 그 뒤 규칙이 통째로 사라진다.
+   CSS 파서는 잘못된 자리를 만나면 다음 { } 덩어리까지 삼키고 넘어가므로,
+   짝 없는 주석 끝 하나에 바로 아래 규칙이 조용히 없어진다 — 빌드는 성공한다. */
+export function findCommentBreaks(css) {
+  const hits = [];
+  let inComment = false, line = 1, openedAt = 0;
+  for (let i = 0; i < css.length; i++) {
+    if (css[i] === "\n") { line++; continue; }
+    if (!inComment && css[i] === "/" && css[i + 1] === "*") { inComment = true; openedAt = line; i++; }
+    else if (inComment && css[i] === "*" && css[i + 1] === "/") { inComment = false; i++; }
+    else if (!inComment && css[i] === "*" && css[i + 1] === "/") {
+      hits.push({ line, why: "열리지 않은 주석이 닫힙니다 — 그 위 줄들이 CSS 로 해석되어 아래 규칙이 사라집니다" });
+      i++;
+    }
+  }
+  if (inComment) hits.push({ line: openedAt, why: "주석이 닫히지 않았습니다" });
+  return hits;
+}
+
 // 직접 실행할 때만 검사한다 (테스트에서 findClobbered 만 import 할 수 있게)
 if (import.meta.url === pathToFileURL(process.argv[1] || "").href) {
   let fail = 0;
   for (const f of ["src/shared/styles.css"]) {
-    const hits = findClobbered(readFileSync(f, "utf-8"));
-    if (!hits.length) { console.log(`${f} OK`); continue; }
-    fail = 1;
+    const css = readFileSync(f, "utf-8");
+    const breaks = findCommentBreaks(css);
+    for (const b of breaks) { fail = 1; console.log(`✗ ${f}:${b.line} — ${b.why}`); }
+    const hits = findClobbered(css);
+    if (!hits.length && !breaks.length) { console.log(`${f} OK`); continue; }
+    if (hits.length) fail = 1;
     for (const h of hits) {
       console.log(`✗ ${f}:${h.line} — '${h.prop}' 를 먼저 쓰고 뒤에 '${h.short}' shorthand 가 와서 지워집니다.`);
       console.log(`    ${h.선언}`);
