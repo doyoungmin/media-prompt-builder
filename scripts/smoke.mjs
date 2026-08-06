@@ -54,6 +54,19 @@ for (const app of ["image", "t2v", "i2v"]) {
     errs.push("하단 버튼 영역이 2열이 아님");
   // 앱 설명문구는 걷어냈다
   if (d.getElementById("appSub")) errs.push("앱 설명문구가 남아 있음");
+  /* 제목은 '이름 + 갈래' 로 나뉘어야 한다 — 한 덩어리면 좁은 화면에서
+     "생성" 같은 조각만 다음 줄로 떨어진다. 갈래가 없는 앱(image)은 이름만. */
+  const nameEl = d.getElementById("appTitleText"), noteEl = d.getElementById("appTitleNote");
+  if (!nameEl || !nameEl.textContent.trim()) errs.push("앱 이름이 비었음");
+  if (/·/.test(nameEl?.textContent || "")) errs.push(`이름에 갈래가 섞여 있음: "${nameEl.textContent}"`);
+  if (app === "image") {
+    if (noteEl) errs.push("갈래가 없는 앱인데 갈래 요소가 생김");
+  } else {
+    if (!noteEl || !noteEl.textContent.trim()) errs.push("갈래가 비었음");
+    if (!d.querySelector("#appTitleGroup > #appTitleText")) errs.push("제목 묶음이 없음");
+    // 캐럿은 묶음 밖에 있어야 갈래를 따라 내려가지 않는다
+    if (d.querySelector("#appTitleGroup .caret")) errs.push("캐럿이 제목 묶음 안에 있음");
+  }
   // 되돌리기는 글자 대신 카운트
   const undo = d.getElementById("undoBtn");
   if (!d.getElementById("undoCount")) errs.push("되돌리기 카운트가 없음");

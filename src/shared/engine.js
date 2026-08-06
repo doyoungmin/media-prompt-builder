@@ -1157,10 +1157,16 @@ function pvOf(kr){
 }
 
 /* ── 렌더링 ── */
-function plainTitle(html){
+/* 제목은 '앱 이름 + 갈래(<em>)' 로 되어 있다. 예: 영상 프롬프트 빌더 + · 텍스트에서 생성.
+   한 덩어리 글자로 눌러 놓으면 좁은 화면에서 아무 데서나 접혀 "생성" 같은 조각만
+   다음 줄로 떨어진다. 둘을 나눠 두고, 이름은 절대 접지 않는다. */
+function splitTitle(html){
   const box=document.createElement("div");
   box.innerHTML=html;
-  return box.textContent.replace(/\s+/g," ").trim();
+  const em=box.querySelector("em");
+  const note=em ? em.textContent.replace(/\s+/g," ").trim() : "";
+  if(em) em.remove();
+  return {name:box.textContent.replace(/\s+/g," ").trim(), note};
 }
 /* ── 세 빌더의 정체성 ──
    예전에는 주소에서 파일명을 읽어(`location.pathname`) 자기가 어느 빌더인지 알아냈다.
@@ -1178,7 +1184,18 @@ const APPS=[
 ];
 const APP_ID=document.documentElement.dataset.app||"image";
 const THIS_APP=APPS.find(a=>a.id===APP_ID)||APPS[0];
-document.getElementById("appTitleText").textContent=plainTitle(CONFIG.title);
+{
+  const t=splitTitle(CONFIG.title);
+  const nameEl=document.getElementById("appTitleText");
+  nameEl.textContent=t.name;
+  if(t.note){
+    // 이름과 갈래를 한 묶음으로 싼다 — 캐럿이 갈래를 따라 내려가지 않게 묶음 밖에 남긴다
+    const grp=document.createElement("span"); grp.id="appTitleGroup";
+    nameEl.replaceWith(grp);
+    const note=document.createElement("span"); note.id="appTitleNote"; note.textContent=t.note;
+    grp.append(nameEl, document.createTextNode(" "), note);
+  }
+}
 document.getElementById("brandUse").setAttribute("href","#"+THIS_APP.icon);
 /* 앱 설명(CONFIG.sub)은 화면에서 뺐다 — 제목과 아이콘이 이미 같은 말을 한다.
    검색·공유용 <meta description> 은 엔트리 HTML 에 그대로 남아 있다. */

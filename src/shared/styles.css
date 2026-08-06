@@ -77,17 +77,24 @@
      본문 아이콘과 시각적 무게를 맞춘다. */
   .brand-ic{width:46px;height:46px;flex:0 0 auto;fill:none;stroke:var(--acc);stroke-width:1.25;
     stroke-linecap:round;stroke-linejoin:round}
-  .brand-tx{position:relative;min-width:0}
+  .brand-tx{position:relative;min-width:0;flex:1 1 auto}
   header h1{margin:0;font-size:22px;font-weight:700;line-height:1.25;letter-spacing:-.02em;
     color:var(--tx);min-width:0}
 
 
   /* ── 빌더 전환 ── 제목 자체가 여는 버튼이다.
      제목과 전환 대상이 같은 것을 가리키므로 따로 떼어 둘 이유가 없다. */
-  .brand-btn{display:flex;align-items:center;gap:var(--sp2);max-width:100%;
+  .brand-btn{display:flex;align-items:center;flex-wrap:nowrap;gap:var(--sp2);max-width:100%;
     margin:0 -8px;padding:2px 8px;border:0;border-radius:var(--r1);background:none;
     color:inherit;font:inherit;letter-spacing:inherit;cursor:pointer;transition:.15s}
   .brand-btn>span{min-width:0;white-space:nowrap}
+  /* 제목 = 앱 이름 + 갈래. width:max-content 가 '되도록 한 줄'을 고르고,
+     max-width:100% 가 자리가 없을 때 갈래만 다음 줄로 내린다.
+     이름은 nowrap 이라 어떤 폭에서도 쪼개지지 않는다. */
+  #appTitleGroup{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 var(--sp2);
+    width:max-content;max-width:100%;min-width:0;flex:0 1 auto}
+  #appTitleText,#appTitleNote{white-space:nowrap}
+  #appTitleNote{font-size:.6em;font-weight:600;color:var(--tx3);letter-spacing:0}
   .brand-btn:hover{background:var(--s1)}
   .brand-btn:focus-visible{outline:2px solid var(--acc2);outline-offset:-2px}
   .caret{width:18px;height:18px;color:var(--tx3);transition:.2s}
@@ -644,8 +651,6 @@
     .wrap{display:block;min-height:100vh;margin:0;padding:12px 14px 96px}
     header{align-items:flex-start;gap:var(--sp3);padding-bottom:var(--sp3);margin-bottom:var(--sp3)}
     .brand{flex:1 1 100%;width:100%;gap:10px}
-    /* 좁은 화면에서는 넘치느니 접는다 (넓은 화면은 nowrap 유지) */
-    .brand-btn>span{white-space:normal;overflow-wrap:break-word}
     .brand-ic{width:38px;height:38px}
     header h1{font-size:18px}
     .builder-menu{min-width:min(300px,calc(100vw - 28px))}
