@@ -373,6 +373,15 @@ const arrow = (x1,y1,x2,y2,color=PV_C) => {
     `fill="none" stroke="${color}" stroke-width="2" stroke-linecap="butt" stroke-linejoin="miter"/>`;
 };
 const cam = (cx,cy,r=3.6) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${PV_C}"/>`;
+/* 삼각대 — 카메라가 그 자리에 못박혀 있다는 뜻. 팬·틸트에서는 회전축 노릇도 한다. */
+const tripod = (cx,cy) => cam(cx,cy)+
+  `<path d="M${cx} ${cy+3} L${cx-7} ${cy+9} M${cx} ${cy+3} L${cx+7} ${cy+9} M${cx} ${cy+3} V${cy+9}"`+
+  ` stroke="${PV_C}" stroke-width="1.8" stroke-linecap="round"/>`;
+/* 회전 화살표 — 호 + 끝의 갈매기. 팬·틸트가 '이동'이 아니라 '제자리 회전'임을 말한다 */
+const turn = (d,hx,hy,h1x,h1y,h2x,h2y) =>
+  `<path d="${d}" stroke="${PV_C}" stroke-width="2" fill="none"/>`+
+  `<path d="M${h1x} ${h1y} L${hx} ${hy} L${h2x} ${h2y}" fill="none" stroke="${PV_C}"`+
+  ` stroke-width="2" stroke-linejoin="miter"/>`;
 
 const PREVIEW = {
   /* ── 조리개: 배경 흐림 정도 ── */
@@ -427,9 +436,14 @@ const PREVIEW = {
   "풀 아웃":         svg(fig(32,16,6,14)+cam(24,20)+arrow(20,20,7,20)+frame),
   "트래킹 샷":       svg(fig(38,16,6,14)+cam(38,34)+arrow(20,34,52,34)+
                     `<path d="M46 12 h10" stroke="${PV_S}" stroke-width="2" stroke-linecap="round" opacity=".5"/>`+frame),
-  "팬":             svg(cam(32,32)+`<path d="M12 14 A24 24 0 0 1 52 14" stroke="${PV_A}" stroke-width="1" fill="none"/>`+
-                    arrow(16,16,50,16)+frame),
-  "틸트":           svg(cam(32,32)+arrow(32,30,32,8)+frame),
+  /* 위에서 내려다본 그림 — 삼각대에 못박힌 채 시야만 좌우로 도는 것 */
+  "팬":             svg(tripod(32,30)+
+                    `<path d="M32 27 L10 12 M32 27 L54 12" stroke="${PV_A}" stroke-width="1" stroke-dasharray="2 2"/>`+
+                    turn("M14 14 A24 24 0 0 1 50 14", 50.5,14, 47,10.5, 46.5,17)+frame),
+  /* 옆에서 본 그림 — 같은 자리에서 시야만 위아래로 도는 것 */
+  "틸트":           svg(tripod(14,28)+
+                    `<path d="M17 26 L56 26 M17 26 L52 8" stroke="${PV_A}" stroke-width="1" stroke-dasharray="2 2"/>`+
+                    turn("M40 24 A26 26 0 0 0 46 12", 46.5,11.5, 42.5,14.5, 48,16)+frame),
   "핸드헬드":        svg(fig(32,16,6,14)+
                     `<path d="M8 34 q6 -6 12 0 q6 6 12 0 q6 -6 12 0 q6 6 12 0" stroke="${PV_C}" stroke-width="2" fill="none" stroke-linecap="round"/>`+frame),
   "스테디캠 롱테이크": svg(fig(38,16,6,14)+
@@ -473,10 +487,10 @@ const PREVIEW = {
                 `<path d="M6 34 h52" stroke="${PV_C}" stroke-width="2" stroke-linecap="round"/>`+frame),
 
   /* ── 움직임의 크기 ── */
-  "미세한 움직임": svg(fig(32,16,6,14)+
-                `<path d="M44 12 q3 -3 6 0" stroke="${PV_C}" stroke-width="1.6" fill="none" stroke-linecap="round"/>`+frame),
-  "보통 움직임":  svg(`<g opacity=".35">`+fig(26,16,6,14)+`</g>`+fig(36,16,6,14)+
-                `<path d="M46 10 q5 -5 10 0" stroke="${PV_C}" stroke-width="1.8" fill="none" stroke-linecap="round"/>`+frame),
+  "미세한 움직임": svg(`<g opacity=".4">`+fig(35,16,6,14)+`</g>`+fig(32,16,6,14)+
+                arrow(27,35,37,35)+arrow(37,35,27,35)+frame),
+  "보통 움직임":  svg(`<g opacity=".4">`+fig(38,16,6,14)+`</g>`+fig(28,16,6,14)+
+                arrow(19,35,47,35)+arrow(47,35,19,35)+frame),
   "역동적 움직임": svg(`<g opacity=".2">`+fig(16,18,6,13)+`</g><g opacity=".45">`+fig(30,15,6,13)+`</g>`+fig(46,19,6,13)+
                 arrow(8,34,56,34)+frame),
 
@@ -487,12 +501,12 @@ const PREVIEW = {
                 `<path d="M6 34 h52" stroke="${PV_A}" stroke-width="1" stroke-dasharray="10 6"/>`+frame),
   "60fps 부드럽게": svg(fig(32,18,5,11)+
                 `<path d="M6 34 h52" stroke="${PV_A}" stroke-width="1" stroke-dasharray="3 2"/>`+frame),
-  "끊김 없는 루프": svg(`<path d="M20 12 A14 10 0 1 1 20 30" stroke="${PV_C}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`+
-                arrow(20,30,26,33)+fig(38,18,5,10)+frame),
-  "피사체 정지":   svg(fig(32,16,6.5,14)+
-                `<path d="M6 10 q6 6 12 0 M6 30 q6 6 12 0 M46 10 q6 6 12 0 M46 30 q6 6 12 0" stroke="${PV_C}" stroke-width="1.6" fill="none" stroke-linecap="round"/>`+frame),
-  "카메라 고정 유지": svg(fig(32,16,6,14)+cam(32,34)+
-                `<path d="M25 30 h14 M25 38 h14" stroke="${PV_C}" stroke-width="2" stroke-linecap="round"/>`+frame),
+  /* 처음과 끝이 이어진다 — 닫힌 원형 화살표가 그 뜻을 그대로 말한다 */
+  "끊김 없는 루프": svg(fig(32,18,4.5,9)+
+                turn("M43 20 A11 11 0 1 1 38.2 10.9", 38.6,10.4, 34.4,13.6, 41,15)+frame),
+  "피사체 정지":   svg(fig(32,16,6,14)+
+                [12,22,32].map(y=>arrow(4,y,20,y)+arrow(44,y,60,y)).join("")+frame),
+  "카메라 고정 유지": svg(fig(44,15,5,11)+tripod(16,24)+frame),
 };
 
 /* ── 필름 · 색감: 팔레트 스와치 ── */
