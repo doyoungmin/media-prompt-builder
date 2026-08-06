@@ -319,16 +319,31 @@ const ALL_DATA = [
    칩 미리보기 — 이미지 파일 없이 SVG·CSS 로만 그린다 (용량 증가 0)
    PREVIEW[한국어명] = SVG 문자열 또는 {sw:"CSS background"}
    ══════════════════════════════════════════════════════════════ */
-const PV_A="#8b93a5", PV_S="#7f77dd", PV_C="#5dcaa5";   // 보조선 · 피사체 · 카메라
-const svg = inner => `<svg viewBox="0 0 64 40" preserveAspectRatio="xMidYMid meet">${inner}</svg>`;
+const PV_A="#8b93a5", PV_S="#7081BE", PV_C="#78BF54";   // 보조선 · 피사체 · 카메라
+/* 캔버스는 16:9 — 칸도 16:9 라 도식이 면을 정확히 채운다.
+   좌표계(폭 64 · 세로 중심 20)는 그대로 두고 위아래 2 씩만 잘라 냈다.
+   기존 도식 110개의 좌표를 건드리지 않으려는 것이고, 잘려 나가는 2 는
+   지워 버린 액자선이 있던 자리라 그리는 내용이 없다. */
+const svg = inner => `<svg viewBox="0 2 64 36" preserveAspectRatio="xMidYMid meet">${inner}</svg>`;
 /* 도식 안에 그리던 회색 테두리 — 카드 면 자체가 곧 화면 프레임이므로 지웠다.
    테두리가 있으면 카드 안에 또 하나의 액자가 생겨 도식만 작아 보인다.
    호출부 90여 곳을 건드리지 않으려고 이름은 남긴다(되돌리려면 이 한 줄만 고치면 된다). */
 const frame = "";
-/* 프레임 안 인물 — 머리 반지름 r, 머리 중심 (cx,cy), 몸통 높이 bh */
-const fig = (cx,cy,r,bh) =>
-  `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${PV_S}"/>`+
-  (bh>0?`<rect x="${cx-r*0.95}" y="${cy+r*1.1}" width="${r*1.9}" height="${bh}" rx="${r*0.6}" fill="${PV_S}"/>`:"");
+/* 프레임 안 인물 — 머리 반지름 r, 머리 중심 (cx,cy), 몸통 높이 bh.
+   Material Symbols(Sharp) 의 사람 픽토그램을 따른다 — 둥근 모서리 없이
+   머리(원) · 어깨(넓은 사각) · 다리(좁은 사각) 세 덩이.
+   총 높이는 예전과 같은 bh 라 부르는 쪽 좌표를 고칠 필요가 없다. */
+const fig = (cx,cy,r,bh) => {
+  const n = v => +v.toFixed(2);
+  /* 발끝은 예전(cy+1.1r+bh)과 같은 자리에 둔다 — 도식들이 바닥선·지평선을
+     그 높이에 맞춰 그려 두었다. 목 사이를 벌린 만큼 몸 높이에서 뺀다. */
+  const top=cy+r*1.25, h=bh-r*0.15, tw=r*2.3, lw=r*1.15, th=h*0.5;
+  return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${PV_S}"/>`+
+    (bh>0
+      ? `<rect x="${n(cx-tw/2)}" y="${n(top)}" width="${n(tw)}" height="${n(th)}" fill="${PV_S}"/>`
+       +`<rect x="${n(cx-lw/2)}" y="${n(top+th)}" width="${n(lw)}" height="${n(h-th)}" fill="${PV_S}"/>`
+      : "");
+};
 /* 배경 줄무늬 — blur 로 심도를 표현 */
 const bg = b => `<defs><filter id="b${String(b).replace(".","_")}"><feGaussianBlur stdDeviation="${b}"/></filter></defs>`+
   `<g filter="url(#b${String(b).replace(".","_")})">`+
