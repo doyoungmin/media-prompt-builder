@@ -52,11 +52,27 @@ Seedance 2.0 은 1.0/1.5 와 달리 **네이티브 오디오·멀티숏·최대 
 > 참고: 1.0 / 1.5 Pro 는 무음·단일 숏이라 이 형식이 맞지 않는다. 그쪽 모델을 쓸 거라면
 > Veo 또는 범용 출력을 쓰는 편이 낫다.
 
-## 배포 (GitHub → Cloudflare Pages 자동)
+## 저장 상태 호환성
 
-1. 이 폴더를 GitHub 저장소로 push
-2. Cloudflare 대시보드 → Workers & Pages → Create → Pages → **Connect to Git**
-3. Build command `npm run build` / Output directory `dist` (Framework preset: Vite)
-4. 이후 `git push` 만 하면 자동 배포. PR 을 열면 프리뷰 URL 자동 생성.
+앱별 작업 상태는 `prompt-builder:<app-id>` 키로 localStorage에 저장되고,
+`src/shared/engine.js`의 `STORE_V`와 `migrateSavedState()`가 호환성을 관리한다.
 
-CI(GitHub Actions)는 PR/push 마다 타입 검사 + 빌드 확인만 수행한다 (`.github/workflows/ci.yml`).
+- 선택 필드 추가처럼 기존 값을 그대로 읽을 수 있는 변경은 기본값으로 보완한다.
+- 필드 타입·의미를 바꾸는 비호환 변경에서만 `STORE_V`를 올린다.
+- 버전을 올릴 때는 기존 버전 마이그레이션과 손상 데이터 안전 초기화를 함께 구현한다.
+- `npm run verify:storage`로 정상 복원, 구버전 마이그레이션, 손상 데이터 내성을 확인한다.
+
+## 배포 (Cloudflare Workers)
+
+운영 정본은 `wrangler.jsonc`가 가리키는 Cloudflare Workers 정적 에셋 배포다.
+현재 운영 주소는 `https://media-prompt-builder.okeyido.workers.dev/`이다.
+
+```bash
+npm ci
+npm run build
+npx wrangler deploy
+```
+
+`dist/`가 Workers 정적 에셋으로 올라가며, `/image/`, `/t2v/`, `/i2v/` 경로를 제공한다.
+PR/push CI는 타입 검사·빌드·CSS 린트·스모크·저장/복사·Seedance 회귀 검증을 수행하고,
+운영 배포는 별도로 실행한다.

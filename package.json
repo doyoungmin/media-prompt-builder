@@ -13,6 +13,8 @@
     "typecheck": "tsc --noEmit",
     "extract-assets": "node scripts/extract-assets.mjs",
     "test:smoke": "node scripts/smoke.mjs",
+    "verify:storage": "node scripts/verify-storage.mjs",
+    "verify:copy": "node scripts/verify-copy.mjs",
     "verify:seedance": "node scripts/verify-seedance.mjs",
     "lint:css": "node scripts/lint-css.mjs"
   },

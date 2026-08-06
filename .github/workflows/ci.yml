@@ -1,5 +1,5 @@
-# PR·push 마다 타입 검사와 빌드만 확인한다.
-# 배포는 Cloudflare Pages Git 연동이 담당하므로 여기서는 하지 않는다.
+# PR·push마다 타입 검사·빌드·CSS·런타임 회귀를 확인한다.
+# 배포는 Cloudflare Workers(wrangler.jsonc)에 별도로 수행하므로 여기서는 하지 않는다.
 name: CI
 on:
   push:
@@ -20,4 +20,6 @@ jobs:
       - run: npm run build
       - run: npm run lint:css
       - run: npm run test:smoke
+      - run: npm run verify:storage
+      - run: npm run verify:copy
       - run: npm run verify:seedance

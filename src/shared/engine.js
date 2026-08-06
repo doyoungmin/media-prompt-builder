@@ -1247,7 +1247,7 @@ function splitTitle(html){
 }
 /* ── 세 빌더의 정체성 ──
    예전에는 주소에서 파일명을 읽어(`location.pathname`) 자기가 어느 빌더인지 알아냈다.
-   Cloudflare Pages 는 `/x.html` 을 `/x` 로 정규화하고 루트는 `/` 라서, 어떤 키에도
+   Cloudflare 정적 배포는 `/x.html` 을 `/x` 로 정규화하고 루트는 `/` 라서, 어떤 키에도
    맞지 않아 아이콘·메뉴·저장소가 전부 어긋났다.
    그래서 빌드할 때 <html data-app="..."> 로 심고 그것만 본다. 주소가 어떻게 바뀌든
    흔들리지 않는다. 짧은 이름·아이콘·설명도 여기 한 줄에 모아 둔다(예전엔 맵 네 개였다). */
@@ -2160,7 +2160,16 @@ function syncOutput(){
 /* 저장 키는 앱 id 로 잡는다. 주소로 잡으면 같은 앱인데 `/` · `/x` · `/x.html` 이
    각각 다른 칸에 저장돼, 메뉴로 옮겨 다닐 때 작업이 사라진 것처럼 보인다. */
 const STORE_KEY="prompt-builder:"+APP_ID;
-const STORE_V=1;
+const STORE_V=2;
+const isRecord=v=>!!v && typeof v==="object" && !Array.isArray(v);
+const stringArray=v=>Array.isArray(v) ? v.filter(x=>typeof x==="string") : [];
+/* v1 → v2 는 저장값 검증을 도입한 버전이다. 기존 선택은 유지하되,
+   알 수 없는 버전은 무리하게 해석하지 않고 기본 상태로 시작한다. */
+function migrateSavedState(saved){
+  if(!isRecord(saved)) return null;
+  if(saved.v===1) return {...saved,v:STORE_V};
+  return saved.v===STORE_V ? saved : null;
+}
 function storage(){ try{ return window.localStorage; }catch(e){ return null; } }
 
 /* ── 화면 테마 ── 앱별 작업 상태와 달리 세 빌더가 같은 선택을 공유한다. */
@@ -2223,28 +2232,37 @@ function restoreState(){
   try{ raw=s.getItem(STORE_KEY) || adoptLegacyState(s); }catch(e){ return; }
   let saved;
   try{ saved=JSON.parse(raw||"null"); }catch(e){ return; }
-  if(!saved || saved.v!==STORE_V) return;
+  saved=migrateSavedState(saved);
+  if(!saved) return;
   // 저장된 뒤에 항목·모델이 바뀌었을 수 있으므로 지금 존재하는 것만 되살린다
-  DATA.forEach(d=>state[d.id]=new Set(((saved.sel||{})[d.id]||[]).filter(has)));
-  ORDER.forEach(id=>{ if(saved.scope && id in saved.scope) scope[id]=!!saved.scope[id]; });
+  const savedSel=isRecord(saved.sel) ? saved.sel : {};
+  DATA.forEach(d=>state[d.id]=new Set(stringArray(savedSel[d.id]).filter(has)));
+  const savedScope=isRecord(saved.scope) ? saved.scope : {};
+  ORDER.forEach(id=>{ if(typeof savedScope[id]==="boolean") scope[id]=savedScope[id]; });
   if(CONFIG.models.some(m=>m.key===saved.model)) modelKey=saved.model;
   if(saved.length==="short" || saved.length==="detail") outputLength=saved.length;
   if(saved.level==="easy" || saved.level==="all") level=saved.level;
-  guardOn=saved.guard!==false;
-  wizPick=(saved.wiz && typeof saved.wiz==="object") ? {...saved.wiz} : {};
-  activePreset=(saved.preset && PRESETS[saved.preset]) ? saved.preset : null;
-  document.getElementById("subject").value=saved.subject||"";
+  guardOn=typeof saved.guard==="boolean" ? saved.guard : true;
+  const savedWiz=isRecord(saved.wiz) ? saved.wiz : {};
+  wizPick={};
+  WIZ.forEach(step=>{
+    const value=savedWiz[step.key];
+    if(typeof value==="string" && Object.prototype.hasOwnProperty.call(step.opts,value))
+      wizPick[step.key]=value;
+  });
+  activePreset=(typeof saved.preset==="string" && PRESETS[saved.preset]) ? saved.preset : null;
+  document.getElementById("subject").value=typeof saved.subject==="string" ? saved.subject : "";
   /* 저장된 값이 지금의 선택지에 없을 수 있다(구간 수·오디오 종류가 바뀐 경우) */
-  if(saved.sd && typeof saved.sd==="object"){
+  if(isRecord(saved.sd)){
     const v=saved.sd;
     if(SD_TIMES[v.count]) sd.count=v.count;
-    if(Array.isArray(v.segs)) sd.segs=[0,1,2].map(i=>String(v.segs[i]||""));
-    if(v.audio in SD_AUDIO) sd.audio=v.audio;
+    if(Array.isArray(v.segs)) sd.segs=[0,1,2].map(i=>typeof v.segs[i]==="string" ? v.segs[i] : "");
+    if(typeof v.audio==="string" && Object.prototype.hasOwnProperty.call(SD_AUDIO,v.audio)) sd.audio=v.audio;
     if(v.preserve==="strict"||v.preserve==="natural") sd.preserve=v.preserve;
-    sd.note=String(v.note||"");
+    sd.note=typeof v.note==="string" ? v.note : "";
     redrawSd();
   }
-  setSelSumOpen(!!saved.selOpen);
+  setSelSumOpen(saved.selOpen===true);
   syncLevelUI(); syncWizUI(); syncPresetUI();
 }
 
@@ -2355,8 +2373,9 @@ document.addEventListener("keydown",e=>{
 function copyIt(){
   const t=document.getElementById("prompt").value; if(!t) return;
   const btn=document.getElementById("copyBtn");
-  const done=()=>{ btn.textContent="복사됨 ✓"; btn.classList.add("done");
-    setTimeout(()=>{btn.textContent="복사"; btn.classList.remove("done");},1400); };
+  const label=btn.querySelector(".copy-tx");
+  const done=()=>{ label.textContent="복사됨 ✓"; btn.classList.add("done");
+    setTimeout(()=>{label.textContent="복사"; btn.classList.remove("done");},1400); };
   const fb=()=>{ const ta=document.getElementById("prompt");
     ta.removeAttribute("readonly"); ta.select();
     try{ document.execCommand("copy"); done(); }catch(e){}
