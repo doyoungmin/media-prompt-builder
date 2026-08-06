@@ -666,33 +666,46 @@ Object.assign(PREVIEW, {
 /* ── 톤 · 대비: 톤 커브 ──
    '리프티드 블랙'과 '블랙 크러시'는 커브 하나면 즉시 구분된다.
    가로축 어두움→밝음, 세로축 출력. 점선은 손대지 않은 기준선. */
+/* 톤 커브 — 그래프는 48×32 좌표로 그려 두고, 그릴 때 카드 전체(2~62 · 4~36)로
+   늘린다. 예전에는 카드 한가운데 작게 떠 있어 좌우에 빈 자리가 크게 남았다.
+   가로·세로 배율이 달라 선 굵기가 일그러지므로 non-scaling-stroke 로 고정한다. */
+const CURVE_FIT = `translate(-8,-1) scale(1.25,1.125)`;
 const curveBox =
-  `<rect x="8" y="4" width="48" height="32" rx="2" fill="none" stroke="${PV_A}" stroke-width="1" opacity=".5"/>`+
-  `<path d="M8 36 L56 4" stroke="${PV_A}" stroke-width="1" stroke-dasharray="3 3" opacity=".45"/>`;
-const curve = d => `<path d="${d}" stroke="${PV_C}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+  `<path d="M8 36 L56 4" stroke="${PV_A}" stroke-width="1" stroke-dasharray="3 3" opacity=".45"`+
+  ` vector-effect="non-scaling-stroke"/>`;
+const curve = d => `<path d="${d}" stroke="${PV_C}" stroke-width="2.2" fill="none"`+
+  ` stroke-linecap="butt" vector-effect="non-scaling-stroke"/>`;
+/* 격자 — 축 대신 3분할 눈금만 옅게. 테두리는 카드 면이 대신한다 */
+const curveGrid = [1,2].flatMap(i=>[
+  `<path d="M${8+i*16} 4 V36" stroke="${PV_A}" stroke-width="1" opacity=".22" vector-effect="non-scaling-stroke"/>`,
+  `<path d="M8 ${4+i*10.67} H56" stroke="${PV_A}" stroke-width="1" opacity=".22" vector-effect="non-scaling-stroke"/>`,
+]).join("");
+const curveOf = d => `<g transform="${CURVE_FIT}">${curveGrid}${curveBox}${curve(d)}</g>`;
 
 Object.assign(PREVIEW, {
-  "저대비 플랫":      svg(curveBox+curve("M8 28 C22 24, 42 18, 56 13")),
-  "고대비 톤":        svg(curveBox+curve("M8 36 C20 35, 24 24, 32 20 C40 16, 44 5, 56 4")),
-  "블랙 크러시":      svg(curveBox+curve("M8 36 L21 36 C34 31, 46 11, 56 4")),
-  "리프티드 블랙":    svg(curveBox+curve("M8 26 C22 19, 42 9, 56 4")),
-  "하이라이트 롤오프": svg(curveBox+curve("M8 36 C22 23, 32 12, 42 9 L56 8")),
+  "저대비 플랫":      svg(curveOf("M8 28 C22 24, 42 18, 56 13")),
+  "고대비 톤":        svg(curveOf("M8 36 C20 35, 24 24, 32 20 C40 16, 44 5, 56 4")),
+  "블랙 크러시":      svg(curveOf("M8 36 L21 36 C34 31, 46 11, 56 4")),
+  "리프티드 블랙":    svg(curveOf("M8 26 C22 19, 42 9, 56 4")),
+  "하이라이트 롤오프": svg(curveOf("M8 36 C22 23, 32 12, 42 9 L56 8")),
 });
 
 /* ── 노출: 같은 계단을 밝기만 달리해 세 장 ──
    양끝이 뭉개지는 것(클리핑)까지 그대로 보인다 */
 const wedge = shift => {
+  /* 띠가 카드를 가로로 꽉 채운다 — 칸 사이 경계선이 곧 눈금이라 테두리는 필요 없다 */
   const cells = [0,1,2,3,4,5].map(i=>{
     const v = Math.max(0, Math.min(255, Math.round(16 + i*46 + shift)));
     const h = v.toString(16).padStart(2,"0");
-    return `<rect x="${(5+i*9.4).toFixed(1)}" y="10" width="8.8" height="18" fill="#${h}${h}${h}"/>`;
+    return `<rect x="${(i*64/6).toFixed(2)}" y="2" width="${(64/6).toFixed(2)}" height="27" fill="#${h}${h}${h}"/>`;
   }).join("");
-  return cells+`<rect x="5" y="10" width="54" height="18" fill="none" stroke="${PV_A}" stroke-width="1" opacity=".5"/>`;
+  return cells;
 };
 Object.assign(PREVIEW, {
-  "1스톱 오버": svg(wedge(52)+`<path d="M32 32.5 l-4.5 5 h9 z" fill="#f5d18a"/>`),
-  "정확 노출":  svg(wedge(0)+`<rect x="29" y="33.5" width="6" height="3" rx="1.5" fill="${PV_C}"/>`),
-  "1스톱 언더": svg(wedge(-52)+`<path d="M32 37.5 l-4.5 -5 h9 z" fill="${PV_A}"/>`),
+  /* 표식은 띠 바로 아래 같은 자리에 — 위/정상/아래를 한눈에 견주게 한다 */
+  "1스톱 오버": svg(wedge(52)+`<path d="M32 31 l-5 5.5 h10 z" fill="#f5d18a"/>`),
+  "정확 노출":  svg(wedge(0)+`<rect x="28" y="32.5" width="8" height="3.5" fill="${PV_C}"/>`),
+  "1스톱 언더": svg(wedge(-52)+`<path d="M32 36.5 l-5 -5.5 h10 z" fill="${PV_A}"/>`),
 });
 
 /* ══════════════════════════════════════════════════════════════
@@ -725,18 +738,18 @@ Object.assign(PREVIEW, {
 /* ── 감도 · 화이트밸런스 ──
    ISO 는 질감(그레인)이라 도식, 화이트밸런스는 색이라 색상칩이 맞다 */
 PREVIEW["ISO 100 클린"] = svg(
-  `<rect x="4" y="6" width="56" height="28" fill="#5a6070"/>`+
+  `<rect x="0" y="2" width="64" height="36" fill="#5a6070"/>`+
   fig(32,15,6,13)+frame);
 PREVIEW["ISO 3200 그레인"] = svg(
   `<defs><filter id="grn"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3"/>`+
   `<feColorMatrix type="saturate" values="0"/></filter></defs>`+
-  `<rect x="4" y="6" width="56" height="28" fill="#5a6070"/>`+
+  `<rect x="0" y="2" width="64" height="36" fill="#5a6070"/>`+
   fig(32,15,6,13)+
-  `<rect x="4" y="6" width="56" height="28" filter="url(#grn)" opacity=".55"/>`+frame);
+  `<rect x="0" y="2" width="64" height="36" filter="url(#grn)" opacity=".55"/>`+frame);
 /* 같은 실내 장면에 색온도만 달리 입힌다 — 색상칩보다 '무엇이 달라지는지'가 분명하다 */
 const wbRoom = tintFill =>
-  `<rect x="2.5" y="2.5" width="59" height="35" fill="#6a6f7a"/>`+
-  `<rect x="2.5" y="27" width="59" height="10.5" fill="#4d525c"/>`+
+  `<rect x="0" y="2" width="64" height="36" fill="#6a6f7a"/>`+
+  `<rect x="0" y="27" width="64" height="11" fill="#4d525c"/>`+
   `<rect x="8" y="8" width="14" height="19" rx="1.5" fill="#c9ced8"/>`+    /* 창 */
   `<circle cx="45" cy="14" r="4" fill="#e6d9b8"/>`+                        /* 전등 */
   `<rect x="41" y="18" width="8" height="9" rx="1.5" fill="#8f95a1"/>`+
@@ -760,9 +773,9 @@ Object.assign(PREVIEW, {
 
 /* ── 광학 필터 ── 어디가 얼마나 어두워지는가. 위치·정도 정보라 도식이 정확하다 */
 const skyBox = (skyFill) =>
-  `<rect x="2.5" y="2.5" width="59" height="21" fill="${skyFill}"/>`+
-  `<rect x="2.5" y="23.5" width="59" height="14" fill="#3d4553"/>`+
-  `<path d="M2.5 26 L20 20 L32 26 L46 18 L61.5 26 L61.5 37.5 L2.5 37.5 Z" fill="#2a303c"/>`;
+  `<rect x="0" y="2" width="64" height="21.5" fill="${skyFill}"/>`+
+  `<rect x="0" y="23.5" width="64" height="14.5" fill="#3d4553"/>`+
+  `<path d="M0 26.5 L20 20 L32 26 L46 18 L64 26.5 L64 38 L0 38 Z" fill="#2a303c"/>`;
 Object.assign(PREVIEW, {
   "폴라라이저": svg(skyBox("#123a63")+
     `<circle cx="16" cy="11" r="4.5" fill="#eef2f8" opacity=".9"/>`+
@@ -817,9 +830,9 @@ Object.assign(PREVIEW, {
 
 /* ── 흑백 필터 ── 흑백으로 바꿀 때 하늘이 얼마나 어두워지는가 */
 const monoBox = (skyGray) =>
-  `<rect x="2.5" y="2.5" width="59" height="21" fill="${skyGray}"/>`+
-  `<rect x="2.5" y="23.5" width="59" height="14" fill="#8f8f8f"/>`+
-  `<path d="M2.5 26 L20 20 L32 26 L46 18 L61.5 26 L61.5 37.5 L2.5 37.5 Z" fill="#4a4a4a"/>`+
+  `<rect x="0" y="2" width="64" height="21.5" fill="${skyGray}"/>`+
+  `<rect x="0" y="23.5" width="64" height="14.5" fill="#8f8f8f"/>`+
+  `<path d="M0 26.5 L20 20 L32 26 L46 18 L64 26.5 L64 38 L0 38 Z" fill="#4a4a4a"/>`+
   `<circle cx="17" cy="11" r="5" fill="#f2f2f2" opacity=".95"/>`+
   `<circle cx="45" cy="9" r="3.6" fill="#f2f2f2" opacity=".9"/>`;
 Object.assign(PREVIEW, {
