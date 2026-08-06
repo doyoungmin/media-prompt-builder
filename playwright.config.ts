@@ -16,9 +16,16 @@ export default defineConfig({
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    command: "npm run build && npx vite preview --port 4173 --strictPort",
+    /* --host 를 명시한다. vite preview 는 기본이 localhost 인데, CI 러너에서는
+       localhost 가 ::1(IPv6) 로 먼저 풀려 서버가 IPv6 에만 붙는다. 그러면
+       127.0.0.1 을 두드리는 아래 url 이 영원히 응답을 못 받고 120초 뒤 죽는다.
+       내 샌드박스에서는 localhost 가 IPv4 라 통과해서 CI 에서만 터졌다. */
+    command: "npm run build && npx vite preview --port 4173 --strictPort --host 127.0.0.1",
     url: "http://127.0.0.1:4173/",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    // 서버가 못 뜨면 이유를 로그로 남긴다 — 지난번엔 타임아웃 문구만 나왔다
+    stdout: "pipe",
+    stderr: "pipe",
   },
 });
