@@ -321,7 +321,10 @@ const ALL_DATA = [
    ══════════════════════════════════════════════════════════════ */
 const PV_A="#8b93a5", PV_S="#7f77dd", PV_C="#5dcaa5";   // 보조선 · 피사체 · 카메라
 const svg = inner => `<svg viewBox="0 0 64 40" preserveAspectRatio="xMidYMid meet">${inner}</svg>`;
-const frame = `<rect x="1.5" y="1.5" width="61" height="37" rx="3" fill="none" stroke="${PV_A}" stroke-width="1.2"/>`;
+/* 도식 안에 그리던 회색 테두리 — 카드 면 자체가 곧 화면 프레임이므로 지웠다.
+   테두리가 있으면 카드 안에 또 하나의 액자가 생겨 도식만 작아 보인다.
+   호출부 90여 곳을 건드리지 않으려고 이름은 남긴다(되돌리려면 이 한 줄만 고치면 된다). */
+const frame = "";
 /* 프레임 안 인물 — 머리 반지름 r, 머리 중심 (cx,cy), 몸통 높이 bh */
 const fig = (cx,cy,r,bh) =>
   `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${PV_S}"/>`+
@@ -1150,7 +1153,8 @@ function pvKind(kr){
 function pvOf(kr){
   switch(pvKind(kr)){
     case "photo": return `<span class="pv ph"><img src="${PHOTO[kr]}" alt="" loading="lazy"></span>`;
-    case "svg":   return `<span class="pv">${PREVIEW[kr]}</span>`;
+    // pv-svg — 도식은 사진과 화면비가 달라 칸 비율을 따로 잡는다(styles.css 참고)
+    case "svg":   return `<span class="pv pv-svg">${PREVIEW[kr]}</span>`;
     case "sw":    return `<span class="pv sw" style="background:${SWATCH[kr]}"></span>`;
     default:      return "";
   }

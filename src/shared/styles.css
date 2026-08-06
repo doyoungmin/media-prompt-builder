@@ -288,9 +288,14 @@
   .chip.hide,.chip.haspv.hide{display:none}
   .chip.haspv .txt{padding:8px 11px 10px;min-width:0}
   .chip.haspv .desc{display:block;margin-top:3px;line-height:1.4;min-height:2.8em}
-  .pv{width:100%;aspect-ratio:16/9;background:var(--bg);display:block;
+  .pv{width:100%;aspect-ratio:16/9;background:var(--s2);display:block;
     border:none;border-bottom:1px solid var(--line);border-radius:8px 8px 0 0;overflow:hidden}
   .pv svg{width:100%;height:100%;display:block}
+  /* 도식 캔버스는 64×40(8:5)인데 칸이 16:9 면 양옆이 남아 도식만 작아 보인다.
+     칸을 캔버스에 맞춰 도식이 면을 꽉 채우게 한다.
+     프리셋 카드는 사진과 나란히 놓이므로 16:9 그대로 둔다(여기 선택자에 안 걸린다). */
+  .chips .pv.pv-svg,.opts .pv.pv-svg,
+  .chip.haspv .pv.pv-svg,.opt.haspv .pv.pv-svg{aspect-ratio:8/5}
   .pv img{width:100%;height:100%;object-fit:cover;display:block}
   .pv.sw{border-color:var(--hair-strong)}
   /* 카드 이미지는 확대하지 않는다. 호버·키보드 포커스에서는 설명 툴팁만 보여준다.
