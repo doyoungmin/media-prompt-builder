@@ -4,6 +4,11 @@ import { JSDOM } from "jsdom";
 import { compose } from "./compose-engine.mjs";
 
 let fail = 0;
+const brandIcons = {
+  image: "/app-icons/t2i.svg",
+  t2v: "/app-icons/t2v.svg",
+  i2v: "/app-icons/i2v.svg",
+};
 for (const app of ["image", "t2v", "i2v"]) {
   const html = readFileSync(`${app}/index.html`, "utf-8")
     .replace(/<script type="module"[^>]*><\/script>/g, "");
@@ -14,6 +19,10 @@ for (const app of ["image", "t2v", "i2v"]) {
     dom.window.eval(compose(app));
   } catch (e) { errs.push(String(e && e.stack || e).split("\n").slice(0,3).join(" | ")); }
   const d = dom.window.document;
+  const brandIcon = d.querySelector("img.brand-ic");
+  if (!brandIcon || brandIcon.getAttribute("src") !== brandIcons[app])
+    errs.push(`브랜드 아이콘이 다름: ${brandIcon?.getAttribute("src") || "없음"}`);
+  if (d.getElementById("brandUse")) errs.push("기존 인라인 브랜드 아이콘이 남아 있음");
   const counts = {
     buttons: d.querySelectorAll("button").length,
     sections: d.querySelectorAll("section, [class*=sec]").length,

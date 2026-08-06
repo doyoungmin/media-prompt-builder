@@ -72,11 +72,8 @@
   header{display:flex;align-items:center;flex-wrap:wrap;gap:var(--sp3) var(--sp5);
     margin-bottom:var(--sp4);min-width:0}
   .brand{display:flex;align-items:center;gap:var(--sp3);min-width:0;flex:0 1 auto}
-  /* 제목 덩이(제목 22 + 설명 12 ≈ 51px)를 채우는 크기.
-     24 격자를 46px 로 키우면 선이 그만큼 굵어지므로 stroke 를 1.5 → 1.25 로 낮춰
-     본문 아이콘과 시각적 무게를 맞춘다. */
-  .brand-ic{width:46px;height:46px;flex:0 0 auto;fill:none;stroke:var(--acc);stroke-width:1.25;
-    stroke-linecap:round;stroke-linejoin:round}
+  /* 앱별 64px 브랜드 아이콘을 데스크톱 46px, 모바일 38px로 표시한다. */
+  .brand-ic{display:block;width:46px;height:46px;flex:0 0 auto;object-fit:contain}
   .brand-tx{position:relative;min-width:0;flex:1 1 auto}
   header h1{margin:0;font-size:22px;font-weight:700;line-height:1.25;letter-spacing:-.02em;
     color:var(--tx);min-width:0}

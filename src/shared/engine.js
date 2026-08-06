@@ -1260,7 +1260,6 @@ const APPS=[
    short:"영상 · 이미지에 모션",   note:"이미지에 모션"},
 ];
 const APP_ID=document.documentElement.dataset.app||"image";
-const THIS_APP=APPS.find(a=>a.id===APP_ID)||APPS[0];
 {
   const t=splitTitle(CONFIG.title);
   const nameEl=document.getElementById("appTitleText");
@@ -1273,7 +1272,6 @@ const THIS_APP=APPS.find(a=>a.id===APP_ID)||APPS[0];
     grp.append(nameEl, document.createTextNode(" "), note);
   }
 }
-document.getElementById("brandUse").setAttribute("href","#"+THIS_APP.icon);
 /* 앱 설명(CONFIG.sub)은 화면에서 뺐다 — 제목과 아이콘이 이미 같은 말을 한다.
    검색·공유용 <meta description> 은 엔트리 HTML 에 그대로 남아 있다. */
 document.getElementById("subject").placeholder=CONFIG.subjectPlaceholder;
