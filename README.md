@@ -60,6 +60,7 @@ Seedance 2.0 은 1.0/1.5 와 달리 **네이티브 오디오·멀티숏·최대 
 | `npm run lint:css` | CSS 자책골(shorthand 가 longhand 를 덮어씀·주석 깨짐) |
 | `npm run test:smoke` | 3개 앱이 jsdom 에서 뜨는지 · 레일 순서 · 참조 자산 존재 |
 | `npm run verify:storage` `verify:copy` `verify:pwa` `verify:seedance` | 각 기능의 회귀 |
+| `npm run verify:config` | 앱 설정이 실재하는 섹션·항목을 가리키는지 |
 | `npm run test:e2e` | **실제 브라우저**(Playwright) |
 
 `test:e2e` 만 볼 수 있는 것이 있다. jsdom 은 레이아웃을 계산하지 않아 겹침·넘침·
@@ -68,6 +69,12 @@ Seedance 2.0 은 1.0/1.5 와 달리 **네이티브 오디오·멀티숏·최대 
 폭 1440·1100·900·768·430·360px 에서 검사한다.
 
 처음 한 번은 브라우저를 받아야 한다: `npx playwright install --with-deps chromium`
+
+앱 설정(`src/apps/*/app.js` 의 `CONFIG`)의 모양은 `src/app-config.d.ts` 에 적어 뒀다.
+app.js 는 SLOT 으로 engine.js 에 삽입되는 조각이라 그 자체로는 모듈이 아니어서
+타입만으로는 '문자열이다'까지밖에 못 본다. 그 값이 **실재하는 섹션·항목인지**는
+`verify:config` 가 본다 — order 가 sections 밖을 가리키는지, wiz·프리셋이 없는
+항목을 부르는지, 모델 키가 겹치는지, build() 가 모든 키에서 문자열을 내놓는지.
 
 ## 저장 상태 호환성
 

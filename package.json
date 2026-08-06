@@ -17,6 +17,7 @@
     "verify:copy": "node scripts/verify-copy.mjs",
     "verify:pwa": "node scripts/verify-pwa.mjs",
     "verify:seedance": "node scripts/verify-seedance.mjs",
+    "verify:config": "node scripts/verify-config.mjs",
     "lint:css": "node scripts/lint-css.mjs",
     "test:e2e": "playwright test"
   },
