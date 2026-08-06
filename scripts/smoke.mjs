@@ -1,11 +1,11 @@
 /* 이식된 legacy.js 를 jsdom 에서 실행해 런타임 오류와 UI 생성 여부를 확인 */
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { JSDOM } from "jsdom";
 import { compose } from "./compose-engine.mjs";
 
 let fail = 0;
 const brandIcons = {
-  image: "/app-icons/t2i.svg?v=2",
+  image: "/app-icons/image.svg?v=2",
   t2v: "/app-icons/t2v.svg?v=2",
   i2v: "/app-icons/i2v.svg?v=2",
 };
@@ -81,6 +81,26 @@ for (const app of ["image", "t2v", "i2v"]) {
   if (!d.getElementById("undoCount")) errs.push("되돌리기 카운트가 없음");
   if (/되돌리기/.test(undo.textContent)) errs.push("되돌리기 버튼에 글자 레이블이 남음");
   if (!/^\d+\/\d+$/.test(undo.textContent.trim())) errs.push(`되돌리기 표기가 N/M 이 아님: "${undo.textContent.trim()}"`);
+
+  /* 엔트리가 가리키는 정적 자산이 실제로 있는지 — 파비콘·앱 아이콘·매니페스트는
+     화면에 안 나오거나 탭에만 나와서, 파일명을 바꾸면 조용히 깨진 채 배포된다.
+     /src/ 는 vite 가 빌드 때 해결하므로 뺀다. */
+  const refs = [...new Set([...html.matchAll(/(?:href|src)="(\/[^"]+)"/g)].map(m => m[1]))]
+    .filter(u => !u.startsWith("/src/"))
+    .map(u => u.split("?")[0]);
+  for (const u of refs) {
+    if (!existsSync("public" + u)) errs.push(`참조한 자산이 없음: ${u}`);
+  }
+  // 매니페스트가 가리키는 아이콘도 같이 본다
+  for (const u of refs.filter(u => u.endsWith(".webmanifest"))) {
+    let man;
+    try { man = JSON.parse(readFileSync("public" + u, "utf-8")); }
+    catch (e) { errs.push(`매니페스트를 읽을 수 없음: ${u}`); continue; }
+    for (const icon of man.icons || []) {
+      if (!existsSync("public" + icon.src)) errs.push(`매니페스트 아이콘 없음: ${icon.src}`);
+    }
+    if (!man.start_url) errs.push(`매니페스트에 start_url 없음: ${u}`);
+  }
 
   console.log(app, errs.length ? "ERRORS: " + errs.join(" || ") : "OK", JSON.stringify(counts));
   if (errs.length) fail = 1;

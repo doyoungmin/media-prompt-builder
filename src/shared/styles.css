@@ -91,9 +91,12 @@
      max-width:100% 가 자리가 없을 때 갈래만 다음 줄로 내린다.
      이름은 nowrap 이라 어떤 폭에서도 쪼개지지 않는다.
      min-width 는 min-content — 이름보다 좁아지면 nowrap 글자가 박스 밖으로 새어
-     캐럿 위에 겹쳐 그려진다(320px 에서 7px 겹쳤다). */
+     캐럿 위에 겹쳐 그려진다(320px 에서 7px 겹쳤다).
+     flex-shrink 는 0 이어야 한다 — .brand-btn 이 hover 배경을 글자 밖으로 넓히려고
+     margin:0 -8px 로 padding 을 상쇄하는데, 그 음수 여백이 고유 폭을 정확히 16px
+     깎는다. 줄어들 수 있게 두면 딱 그 16px 이 모자라 데스크톱에서도 갈래가 접혔다. */
   #appTitleGroup{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 var(--sp2);
-    width:max-content;max-width:100%;min-width:min-content;flex:0 1 auto}
+    width:max-content;max-width:100%;min-width:min-content;flex:0 0 auto}
   #appTitleText,#appTitleNote{white-space:nowrap}
   #appTitleNote{font-size:.6em;font-weight:600;color:var(--tx3);letter-spacing:0}
   .brand-btn:hover{background:var(--s1)}
