@@ -22,9 +22,35 @@ import AxeBuilder from "@axe-core/playwright";
 const APPS = ["image", "t2v", "i2v"] as const;
 const THEMES = ["dark", "light"] as const;
 
+/* 전환이 끝난 뒤의 색을 본다.
+
+   버튼은 `transition:.15s` 로 상태가 바뀐다. 프리셋을 고르면 되돌리기 버튼이
+   `opacity .3 → 1` 로 살아나는데, 그 중간을 axe 가 재면 배경과 섞인 색이 나온다.
+   실측: 가라앉은 뒤 대비는 7.4:1 인데 전환 중에는 4.49:1 로 잡혔다(불투명도 0.69 지점).
+   그래서 이 검사는 **가끔** 실패했다 — 반복 60회에 3회. CI 는 운으로 통과하고 있었다.
+   가끔 맞는 테스트는 없는 것보다 나쁘다. 없으면 안 본 줄 알지만 있으면 봤다고 믿는다.
+
+   `waitForTimeout` 으로 기다리면 나중에 전환 시간이 바뀔 때 또 깨진다. 대신 동작 줄이기를
+   켠다 — styles.css 에 이미
+   `@media(prefers-reduced-motion:reduce){ *{transition:none!important;animation:none!important} }`
+   가 있어서 **앱 자신의 코드 경로**가 전환을 끈다. 테스트용 CSS 를 주입하면 앱 CSS 와
+   어긋나도 아무도 못 잡지만 이 방식은 그럴 일이 없고, 실제 사용자 설정을 켠 상태를
+   검사하게 된다 — 접근성 검사에는 오히려 제자리다.
+
+   **`test.use({ reducedMotion })` 로 하면 안 된다.** Playwright 1.62 에서 이 파일 수준
+   선언이 조용히 무시된다. 오류도 경고도 없이 미디어 질의가 계속 false 라, 고쳤다고
+   믿는데 그대로 깨지는 상태가 된다(실제로 여기서 한 번 속았다). 그래서 페이지마다
+   emulateMedia 를 명시적으로 부르고, 아래 첫 단언으로 정말 켜졌는지 확인한다.
+
+   범위는 이 파일뿐이다. E2E 전역에 걸면 전환이 관여하는 동작(모바일 결과 패널
+   여닫기 등)을 검사하지 못하게 된다. */
 async function 열기(page: Page, app: string, theme: string) {
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.addInitScript(t => localStorage.setItem("prompt-builder:theme", t), theme);
   await page.goto(`/${app}/`);
+  // 켜졌는지 확인하고 넘어간다 — 조용히 안 먹는 경우가 있었다
+  expect(await page.evaluate(() =>
+    matchMedia("(prefers-reduced-motion: reduce)").matches), "동작 줄이기가 안 켜짐").toBe(true);
 }
 
 async function 위반(page: Page) {

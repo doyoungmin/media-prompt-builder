@@ -180,7 +180,51 @@ test("모바일에서 결과 패널을 열고 닫을 수 있다", async ({ page 
   await expect(bar).toBeVisible();
 });
 
-test("키보드만으로 주요 조작에 닿는다", async ({ page }) => {
+/* 키보드 접근은 두 가지가 섞여 있어서 갈라 놓는다.
+
+   ① 우리가 정하는 것 — 컨트롤이 네이티브 포커스 요소인가, 비활성 요소가 탭 순서에
+      들어가 있지 않은가, 포커스를 준 뒤 키가 먹는가. 엔진과 무관하므로 양쪽에서 본다.
+   ② 브라우저가 정하는 것 — 일반 `Tab` 이 버튼·링크에 가느냐. **사파리는 macOS 에서
+      기본적으로 안 간다**(시스템의 키보드 탐색 설정에 달렸고 Linux 빌드는 다르다).
+      우리가 고칠 수 있는 게 아니므로 이건 크로미움에서만 본다.
+
+   합쳐 두면 macOS 에서 사파리로 돌릴 때 앱이 멀쩡한데도 빨간불이 뜬다. 그렇다고
+   사파리를 통째로 빼면 ① 마저 못 보게 된다. */
+test("컨트롤이 키보드로 조작 가능한 형태다", async ({ page }) => {
+  await page.goto("/t2v/");
+
+  // 네이티브 포커스 요소여야 한다 — div 에 클릭 핸들러만 단 것들은 키보드로 못 쓴다
+  const 주요 = ["#subject", "#copyBtn", "#resetBtn", "#undoBtn", "#builderBtn"];
+  for (const sel of 주요) {
+    const tag = await page.locator(sel).evaluate(el => el.tagName);
+    expect(["BUTTON", "INPUT", "TEXTAREA", "A", "SELECT"], `${sel} 이 ${tag}`).toContain(tag);
+  }
+
+  /* 할 일이 없는 버튼은 비활성이어야 한다. 활성인 채로 두면 키보드 사용자가
+     탭으로 짚고 눌렀는데 아무 일도 안 일어난다. 시작 상태에서 되돌릴 것도
+     복사할 것도 없다 (초기화는 언제든 눌러도 되므로 계속 활성이다). */
+  for (const sel of ["#undoBtn", "#copyBtn"])
+    expect(await page.locator(sel).isDisabled(), `${sel} 이 처음부터 활성`).toBe(true);
+
+  /* 양수 tabindex 는 문서 순서를 무시하고 자기가 먼저 오겠다는 선언이라
+     탭 순서를 뒤죽박죽으로 만든다. 하나도 없어야 한다.
+     (roving tabindex 의 0 과 -1 은 정상 — 탭 목록에서 뺐다 넣었다 하는 용도다) */
+  expect(await page.evaluate(() =>
+    [...document.querySelectorAll("[tabindex]")]
+      .filter(el => Number(el.getAttribute("tabindex")) > 0)
+      .map(el => el.tagName + "#" + el.id)), "양수 tabindex 가 있음").toEqual([]);
+
+  // 포커스를 직접 준 뒤 Enter 가 먹는가 (Tab 이 닿느냐와는 별개 문제다)
+  await page.locator("[data-preset]").first().click();
+  await expect(page.locator("#copyBtn")).toBeEnabled();
+  await page.locator("#copyBtn").focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#copyBtn .copy-tx")).toHaveText("복사됨 ✓");
+});
+
+test("Tab 만으로 복사 버튼까지 닿는다", async ({ page, browserName }) => {
+  test.skip(browserName !== "chromium",
+    "사파리는 macOS 에서 Tab 이 버튼을 건너뛴다 — 시스템 설정 소관이고 앱이 고칠 수 없다");
   await page.goto("/t2v/");
   await page.locator("[data-preset]").first().click();
   await page.locator("#subject").focus();
