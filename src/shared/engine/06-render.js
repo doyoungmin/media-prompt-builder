@@ -76,18 +76,31 @@ const builderMenu=document.getElementById("builderMenu");
 builderMenu.innerHTML=APPS.map(a=>{
   const inner=`<svg class="ic" aria-hidden="true"><use href="#${a.icon}"/></svg>`
     +`<span class="bm-name">${a.short}</span><span class="bm-note">${a.note}</span>`;
-  return a.id===APP_ID
-    ? `<span class="bm-item on" role="menuitem" aria-current="page">${inner}</span>`
-    : `<a class="bm-item" role="menuitem" href="${a.file}">${inner}</a>`;
+  return `<a class="bm-item${a.id===APP_ID?" on":""}" role="menuitem" href="${a.file}" tabindex="-1"`
+    +(a.id===APP_ID?' aria-current="page"':'')+`>${inner}</a>`;
 }).join("");
+const builderItems=()=>[...builderMenu.querySelectorAll('[role="menuitem"]')];
 
-function setBuilderOpen(open){
+function setBuilderOpen(open,focusMenu=false){
   builderMenu.classList.toggle("open",open);
   builderBtn.setAttribute("aria-expanded",open);
+  if(open && focusMenu) (builderItems().find(item=>!item.hasAttribute("aria-current"))||builderItems()[0])?.focus();
 }
+builderMenu.addEventListener("keydown",e=>{
+  const items=builderItems(), index=items.indexOf(document.activeElement);
+  if(!items.length) return;
+  if(e.key==="Escape"){
+    e.preventDefault(); setBuilderOpen(false); builderBtn.focus(); return;
+  }
+  if(!["ArrowDown","ArrowUp","Home","End"].includes(e.key)) return;
+  e.preventDefault();
+  const next=e.key==="Home" ? 0 : e.key==="End" ? items.length-1
+    : (Math.max(index,0)+(e.key==="ArrowDown"?1:-1)+items.length)%items.length;
+  items[next].focus();
+});
 document.addEventListener("keydown",e=>{
   if(e.key==="Escape" && builderMenu.classList.contains("open")){
-    setBuilderOpen(false); builderBtn.focus();
+    e.preventDefault(); setBuilderOpen(false); builderBtn.focus();
   }
 });
 

@@ -59,7 +59,8 @@ syncViewport(); window.addEventListener("resize",syncViewport);
 document.addEventListener("click",e=>{
   const t=e.target;
   if(t.closest("#builderBtn")){
-    setBuilderOpen(!builderMenu.classList.contains("open")); return;
+    const open=!builderMenu.classList.contains("open");
+    setBuilderOpen(open,open); return;
   }
   // 메뉴 밖을 누르면 닫고, 원래 하려던 동작은 그대로 이어간다
   if(!t.closest("#builderMenu")) setBuilderOpen(false);
@@ -84,9 +85,9 @@ document.addEventListener("click",e=>{
   const tab=t.closest(".modetab");
   if(tab){
     document.querySelectorAll(".modetab").forEach(x=>{
-      x.classList.remove("on"); x.setAttribute("aria-selected","false"); });
+      x.classList.remove("on"); x.setAttribute("aria-selected","false"); x.tabIndex=-1; });
     document.querySelectorAll(".pane").forEach(x=>x.classList.remove("on"));
-    tab.classList.add("on"); tab.setAttribute("aria-selected","true");
+    tab.classList.add("on"); tab.setAttribute("aria-selected","true"); tab.tabIndex=0;
     document.getElementById("pane-"+tab.dataset.pane).classList.add("on"); return;
   }
   const opt=t.closest(".opt");
@@ -114,6 +115,8 @@ document.addEventListener("click",e=>{
 });
 
 /* 탭 좌우 방향키 이동 (WAI-ARIA tablist 패턴) */
+const modeTabs=[...document.querySelectorAll(".modetab")];
+modeTabs.forEach(tab=>{ tab.tabIndex=tab.getAttribute("aria-selected")==="true"?0:-1; });
 document.querySelector(".modetabs").addEventListener("keydown",e=>{
   if(e.key!=="ArrowLeft" && e.key!=="ArrowRight" && e.key!=="Home" && e.key!=="End") return;
   const tabs=[...document.querySelectorAll(".modetab")].filter(t=>t.offsetParent!==null||true);

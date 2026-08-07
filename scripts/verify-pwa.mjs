@@ -24,6 +24,11 @@ for (const page of pages) {
   check(html.includes(`rel="manifest" href="${page.manifest}"`), `${page.html}: manifest 링크가 다름`);
   check(html.includes('name="theme-color" content="#06070A"'), `${page.html}: theme-color 없음`);
   check(html.includes('name="apple-mobile-web-app-capable" content="yes"'), `${page.html}: iOS standalone 설정 없음`);
+  if (page.html === "index.html") {
+    for (const token of ['name="description"', 'rel="canonical"', 'property="og:title"',
+      'property="og:description"', 'property="og:image"'])
+      check(html.includes(token), `${page.html}: 공유·검색 메타데이터 누락 (${token})`);
+  }
 
   const manifest = JSON.parse(readFileSync(`public${page.manifest}`, "utf8"));
   check(manifest.id === page.id, `${page.manifest}: id가 다름`);

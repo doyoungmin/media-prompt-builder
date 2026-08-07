@@ -339,10 +339,12 @@ function storage(){ try{ return window.localStorage; }catch(e){ return null; } }
 
 /* ── 화면 테마 ── 앱별 작업 상태와 달리 세 빌더가 같은 선택을 공유한다. */
 const THEME_KEY="prompt-builder:theme";
+const THEME_COLORS={dark:"#06070A",light:"#f5f6f8"};
 const THEME_BTNS=[...document.querySelectorAll("[data-theme-choice]")];
 function applyTheme(theme,persist=true){
   const next=theme==="light"?"light":"dark";
   document.documentElement.dataset.theme=next;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content",THEME_COLORS[next]);
   THEME_BTNS.forEach(btn=>btn.setAttribute("aria-pressed",btn.dataset.themeChoice===next));
   if(!persist) return;
   const s=storage(); if(!s) return;

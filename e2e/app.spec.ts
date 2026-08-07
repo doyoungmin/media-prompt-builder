@@ -185,3 +185,36 @@ test("키보드만으로 주요 조작에 닿는다", async ({ page }) => {
   }
   expect(reached, "탭 이동으로 복사 버튼까지 닿지 못함").toContain("copyBtn");
 });
+
+test("테마 선택이 메타 색상·새로고침·앱 전환에 유지된다", async ({ page }) => {
+  await page.goto("/t2v/");
+  await page.click("#themeLight");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#f5f6f8");
+  await page.reload();
+  await expect(page.locator("#themeLight")).toHaveAttribute("aria-pressed", "true");
+  await page.click("#builderBtn");
+  await page.locator('#builderMenu a[href="/i2v/"]').click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#f5f6f8");
+});
+
+test("앱 전환 메뉴와 탭을 방향키·Escape로 조작한다", async ({ page }) => {
+  await page.goto("/t2v/");
+  await page.locator("#builderBtn").focus();
+  await page.keyboard.press("Enter");
+  const firstFocusedHref = await page.evaluate(() => document.activeElement?.getAttribute("href"));
+  expect(firstFocusedHref).toBe("/image/");
+  await page.keyboard.press("ArrowDown");
+  await expect(page.locator('#builderMenu a[href="/t2v/"]')).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#builderBtn")).toBeFocused();
+  await expect(page.locator("#builderBtn")).toHaveAttribute("aria-expanded", "false");
+
+  await page.locator("#tab-look").focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.locator("#tab-guide")).toBeFocused();
+  await expect(page.locator("#tab-guide")).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#tab-guide")).toHaveAttribute("tabindex", "0");
+  await expect(page.locator("#tab-look")).toHaveAttribute("tabindex", "-1");
+});
