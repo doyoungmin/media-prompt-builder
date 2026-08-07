@@ -84,9 +84,16 @@ test("직접 선택이 프롬프트에 반영된다", async ({ page }) => {
   await expect(page.locator(`.tag[data-remove="${kr}"]`)).toBeVisible();
 });
 
-/* 복사 버튼이 아이콘을 잃던 회귀 — 눈에 보이지만 단위 테스트로는 안 잡혔다 */
-test("복사해도 버튼 아이콘이 남는다", async ({ page, context }) => {
-  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+/* 복사 버튼이 아이콘을 잃던 회귀 — 눈에 보이지만 단위 테스트로는 안 잡혔다.
+
+   clipboard-read / clipboard-write 는 크로미움에만 있는 권한 이름이라 사파리에서는
+   grantPermissions 자체가 던진다. 사파리에는 그런 권한 개념이 없고 대신 사용자
+   제스처로 시작된 복사만 허용한다 — 아래는 실제 버튼 클릭이니 통과한다.
+   그래서 권한 부여는 크로미움에서만 하고, 읽기 검증도 거기서만 한다.
+   정작 이 테스트가 지키려는 것(아이콘이 사라지지 않는가)은 양쪽에서 다 본다. */
+test("복사해도 버튼 아이콘이 남는다", async ({ page, context, browserName }) => {
+  const 클립보드확인 = browserName === "chromium";
+  if (클립보드확인) await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.goto("/t2v/");
   await page.locator("[data-preset]").first().click();
   await page.click("#copyBtn");
@@ -94,7 +101,8 @@ test("복사해도 버튼 아이콘이 남는다", async ({ page, context }) => 
   await expect(page.locator("#copyBtn svg")).toHaveCount(1);
   await expect(page.locator("#copyBtn .copy-tx")).toHaveText("복사", { timeout: 4000 });
   await expect(page.locator("#copyBtn svg")).toHaveCount(1);
-  expect(await page.evaluate(() => navigator.clipboard.readText())).not.toBe("");
+  if (클립보드확인)
+    expect(await page.evaluate(() => navigator.clipboard.readText())).not.toBe("");
 });
 
 test("작업이 새로고침 뒤에도 남는다", async ({ page }) => {

@@ -1,5 +1,10 @@
-# PR·push마다 타입 검사·빌드·CSS·런타임 회귀를 확인한다.
-# 배포는 Cloudflare Workers(wrangler.jsonc)에 별도로 수행하므로 여기서는 하지 않는다.
+# PR·push마다 타입 검사·빌드·CSS·런타임 회귀를 확인하고, main 에서는 검증이
+# 통과한 뒤에만 운영에 배포한다.
+#
+# 예전에는 Cloudflare 가 push 를 직접 받아 배포했다. 그러면 검증과 배포가 나란히
+# 달리는데, 실측하면 배포 20초 · CI 1분이라 **CI 가 빨간불이어도 이미 운영에 나가
+# 있었다.** 지금까지 안 터진 건 push 전에 손으로 다 돌려 봤기 때문이지 구조가
+# 막아 준 게 아니었다. 그래서 배포를 check 뒤로 옮긴다.
 name: CI
 on:
   push:
@@ -39,3 +44,59 @@ jobs:
             test-results/
           if-no-files-found: warn
           retention-days: 7
+
+  # 검증이 통과한 main 커밋만 운영으로 나간다.
+  #
+  # 자격증명이 아직 없으면 조용히 건너뛴다. Cloudflare 쪽 Git 연동을 끄기 전까지는
+  # 그쪽이 계속 배포하므로, 시크릿을 넣는 순간부터 이 job 이 이어받는 그림이다.
+  # 덕분에 "아무도 배포하지 않는" 구간 없이 갈아탈 수 있다.
+  # 넘겨받는 절차는 README 의 배포 항목에 적어 뒀다.
+  deploy:
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 22, cache: npm }
+
+      - name: 자격증명이 준비됐는지 본다
+        id: gate
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::notice::CLOUDFLARE_API_TOKEN 이 없어 배포를 건너뛴다 (아직 Cloudflare 쪽 Git 연동이 배포 중일 것)"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.gate.outputs.ready == 'true'
+        run: npm ci
+      - if: steps.gate.outputs.ready == 'true'
+        run: npm run build
+
+      - name: 운영 배포
+        if: steps.gate.outputs.ready == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        # 어느 커밋이 올라간 버전인지 Cloudflare 대시보드에서 바로 보이게 남긴다.
+        # 롤백할 때 이 태그로 찾는다.
+        run: npx wrangler deploy --tag "${GITHUB_SHA::12}" --message "$(git log -1 --format=%s)"
+
+      # 배포가 성공했다고 사이트가 뜬다는 보장은 없다. 실제로 받아 본다.
+      - name: 운영 주소 확인
+        if: steps.gate.outputs.ready == 'true'
+        run: |
+          URL=https://media-prompt-builder.okeyido.workers.dev
+          for path in / /image/ /t2v/ /i2v/; do
+            for i in $(seq 1 10); do
+              code=$(curl -sS -o /dev/null -w '%{http_code}' "$URL$path" || echo 000)
+              [ "$code" = 200 ] && break
+              sleep 6
+            done
+            [ "$code" = 200 ] || { echo "::error::$path 가 $code 를 돌려줌"; exit 1; }
+            echo "$path 200"
+          done

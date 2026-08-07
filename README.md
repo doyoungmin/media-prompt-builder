@@ -138,9 +138,32 @@ build()가 모든 키에서 문자열을 내놓는지 확인한다. CONFIG를 �
 운영 주소는 `https://media-prompt-builder.okeyido.workers.dev/`이다.
 `dist/`가 통째로 올라가며 `/image/`, `/t2v/`, `/i2v/` 경로를 제공한다.
 
-**`main`에 push 하면 Cloudflare가 알아서 배포한다.** 보통은 push 만 하면 끝이고
-20~60초 뒤 반영된다. GitHub Actions CI 는 이와 별개로 타입·빌드·CSS 린트·스모크·
-각종 회귀 검증과 E2E 를 돌린다.
+`main`에 push 하면 배포된다. 보통은 push 만 하면 끝이다.
+
+### 검증을 통과한 것만 나가게 하기 (전환 필요)
+
+예전에는 Cloudflare 가 push 를 직접 받아 배포했다. 그러면 검증과 배포가 나란히 달리는데,
+실측하면 **배포 20초 · CI 1분**이라 CI 가 빨간불이어도 이미 운영에 나가 있었다. 지금까지
+안 터진 건 push 전에 손으로 다 돌려 봤기 때문이지 구조가 막아 준 게 아니다.
+
+그래서 `ci.yml` 에 `deploy` job 을 뒀다. `needs: check` 라 **검증이 통과해야만** 배포하고,
+배포 뒤에 네 경로(`/` `/image/` `/t2v/` `/i2v/`)를 실제로 받아 200 인지 확인한다.
+
+이 job 은 자격증명이 없으면 조용히 건너뛴다. 그래서 아래 세 단계를 밟기 전까지는
+Cloudflare 쪽이 계속 배포하고, 밟는 순간 이쪽이 이어받는다 — **아무도 배포하지 않는
+구간 없이** 갈아탈 수 있다.
+
+1. Cloudflare 대시보드 → My Profile → API Tokens → **Edit Cloudflare Workers** 템플릿으로
+   토큰 발급. Account ID 는 Workers 개요 화면 오른쪽에 있다
+2. GitHub 저장소 → Settings → Secrets and variables → Actions 에
+   `CLOUDFLARE_API_TOKEN` 과 `CLOUDFLARE_ACCOUNT_ID` 추가
+3. 그 다음 push 가 GitHub 에서 배포되는지 확인한 뒤, Cloudflare 대시보드에서
+   이 Worker 의 **Git 연동(Builds)을 해제**한다. 이 순서를 지켜야 겹치거나 비지 않는다
+
+### 롤백
+
+Cloudflare 대시보드 → Worker → Deployments 에서 이전 버전을 고르면 된다. `deploy` job 이
+커밋 SHA 앞 12자리를 버전 태그로, 커밋 제목을 메시지로 남기므로 목록에서 바로 찾을 수 있다.
 
 손으로 밀어야 할 때만 우회로를 쓴다.
 
