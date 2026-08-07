@@ -218,3 +218,70 @@ test("앱 전환 메뉴와 탭을 방향키·Escape로 조작한다", async ({ p
   await expect(page.locator("#tab-guide")).toHaveAttribute("tabindex", "0");
   await expect(page.locator("#tab-look")).toHaveAttribute("tabindex", "-1");
 });
+
+/* 가이드 사진이 실제로 선명하게 그려지는가.
+
+   srcset 의 sizes 는 브라우저에게 "이 이미지는 이만한 폭으로 그려질 것"이라고
+   미리 약속하는 값이다. 브라우저는 레이아웃을 계산하기 전에 이 약속만 보고
+   내려받을 후보를 정하므로, 약속이 실제보다 작으면 작은 파일을 받아 늘려
+   그린다. 정적 검사로는 절대 잡히지 않는다 — 파일도 멀쩡하고 문법도 맞다.
+   실제 폭은 레이아웃을 계산하는 여기서만 알 수 있다.
+
+   한 번 당한 적이 있다: sizes 가 700px·1100px 중단점을 쓰고 있었는데
+   styles.css 에는 그런 중단점이 없었다. 1열로 바뀌는 진짜 지점은 1039px 라
+   701~1039px 구간에서 카드는 970px 까지 커지는데 선언은 468px 이었고,
+   그래서 768px 짜리를 받아 놓고 늘려 그렸다.
+
+   density-corrected naturalWidth 를 쓰는 게 요령이다. w 서술자 srcset 에서
+   naturalWidth 는 파일의 고유 폭이 아니라 sizes 로 계산된 CSS 폭을 돌려준다.
+   즉 브라우저가 실제로 계산한 약속값을 그대로 읽을 수 있다. */
+test.describe("가이드 사진이 실제 카드 폭에 맞는 해상도로 그려진다", () => {
+  const 자연폭 = { 480: 480, 768: 768, 1024: 1024 } as const;
+  for (const [width, dpr] of [[390, 3], [390, 2], [768, 2], [900, 2], [1039, 2],
+                              [1040, 2], [1280, 2], [1600, 2], [1920, 2]] as const) {
+    test(`폭 ${width}px · dpr${dpr}`, async ({ browser }) => {
+      const context = await browser.newContext({
+        viewport: { width, height: 900 }, deviceScaleFactor: dpr,
+      });
+      const page = await context.newPage();
+      await page.goto("/t2v/");
+      await page.click('.modetab[data-pane="guide"]');
+      /* 평소엔 loading="lazy" 라 화면에 들어와야 받는다. 1열 구간에서는 카드가
+         커서 스크롤로 20장을 다 띄우기 어려우니 여기서만 즉시 로딩으로 바꾼다.
+         후보 선택은 lazy 여부와 무관하므로 재는 값은 달라지지 않는다. */
+      await page.evaluate(() =>
+        document.querySelectorAll<HTMLImageElement>("#pane-guide .pv.ph img")
+          .forEach(img => { img.loading = "eager"; }));
+      await page.waitForFunction(() =>
+        [...document.querySelectorAll<HTMLImageElement>("#pane-guide .pv.ph img")]
+          .every(img => img.complete && img.currentSrc), null, { timeout: 20_000 });
+
+      const 잰값 = await page.evaluate(() =>
+        [...document.querySelectorAll<HTMLImageElement>("#pane-guide .pv.ph img")].map(img => ({
+          카드폭: img.getBoundingClientRect().width,
+          선언폭: img.naturalWidth,   // = sizes 로 계산된 CSS 폭
+          고른파일: Number(img.currentSrc.match(/guide-(\d+)/)?.[1] ?? 1024),
+        })));
+      expect(잰값.length, "가이드 사진 수").toBe(20);
+
+      /* 계약은 "선언 = 실제" 가 아니라 "선언이 실제보다 작지 않다" 이다.
+         auto-fill 그리드의 카드 폭은 260~520px 사이를 연속으로 오가서 sizes
+         한 값으로 따라갈 수 없다. 넘겨 선언하면 큰 파일을 받아 선명하고
+         (바이트만 손해), 모자라게 선언하면 늘려 그린다 — 후자만 버그다. */
+      for (const { 카드폭, 선언폭, 고른파일 } of 잰값) {
+        const 실폭 = 자연폭[고른파일 as keyof typeof 자연폭];
+        // ① 약속이 실제보다 작지 않은가 — sizes 중단점이 틀리면 여기서 걸린다
+        expect(선언폭 / 카드폭,
+          `sizes 가 ${선언폭}px 로 선언했는데 카드는 ${카드폭.toFixed(0)}px — 모자란 후보를 고른다`)
+          .toBeGreaterThanOrEqual(0.95);
+        // ② 받은 파일이 카드를 CSS 픽셀만큼은 채우는가 (늘려 그리지 않는가)
+        expect(실폭 / 카드폭,
+          `${고른파일}w 로 ${카드폭.toFixed(0)}px 카드를 그리면 늘어난다`).toBeGreaterThanOrEqual(1);
+        // ③ 반대로 지나치게 큰 파일을 끌어오지 않는가 — 화면 픽셀의 2배까지만
+        expect(실폭 / (카드폭 * dpr),
+          `${카드폭.toFixed(0)}px 카드(dpr${dpr})에 ${고른파일}w 는 과하다`).toBeLessThanOrEqual(2.2);
+      }
+      await context.close();
+    });
+  }
+});

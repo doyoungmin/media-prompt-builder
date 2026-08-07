@@ -22,7 +22,9 @@
     "generate:guide-assets": "node scripts/generate-guide-variants.mjs",
     "lint:css": "node scripts/lint-css.mjs",
     "test:e2e": "playwright test",
-    "verify:all": "npm run typecheck && npm run build && npm run lint:css && npm run test:smoke && npm run verify:storage && npm run verify:copy && npm run verify:pwa && npm run verify:seedance && npm run verify:config && npm run verify:guide-assets && npm run test:e2e && npm audit --audit-level=moderate"
+    "verify:all": "npm run typecheck && npm run build && npm run lint:css && npm run test:smoke && npm run verify:storage && npm run verify:copy && npm run verify:pwa && npm run verify:seedance && npm run verify:config && npm run verify:guide-assets && npm run test:e2e && npm audit --audit-level=moderate",
+    "release:check": "node scripts/release-check.mjs",
+    "deploy": "node scripts/deploy.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",

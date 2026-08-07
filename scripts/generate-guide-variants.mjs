@@ -1,5 +1,10 @@
-/* GUIDE_IMG 원본에서 480/768px WebP 파생본을 만든다.
-   필요 도구: ImageMagick 7의 `magick`. 원본은 건드리지 않는다. */
+/* GUIDE_IMG 원본(1024px)에서 480/768px WebP 파생본을 만든다.
+   필요 도구: ImageMagick 7의 `magick`. 원본은 건드리지 않는다.
+
+   원본 1024 자체가 srcset 사다리의 맨 윗칸이라 여기서 다시 만들지 않는다.
+   폭을 바꾸려면 scripts/verify-guide-assets.mjs 의 RUNGS 와
+   engine/06-render.js 의 guideImg 를 함께 고쳐야 한다 — 셋이 어긋나면
+   검수가 잡는다. */
 import { mkdirSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 

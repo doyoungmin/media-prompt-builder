@@ -33,8 +33,38 @@ npm run build            # dist/ 생성
 - `src/apps/*/app.js` — 앱별 차이만 담은 코드 (CONFIG·프리셋·썸네일 맵). 옵션 수정은 여기서
 - `public/thumbs/` — 예시 사진 webp + `thumbs-map.json` (한글 키 → 파일명)
 
-수정 → 반영 흐름: 공통 수정은 engine.js 한 곳, 앱별 수정은 해당 app.js 한 곳만 고치면
-세 앱에 동시에 반영된다. `npm run test:smoke` 로 3개 앱 렌더 검증.
+수정 → 반영 흐름: 공통 수정은 `src/shared/engine/`의 해당 기능 조각, 앱별 수정은 해당
+`src/apps/*/app.js`를 고치면 된다. 조각 번호·SLOT 집합은 compose 검증이, 3앱 렌더는
+`npm run test:smoke`가 확인한다. 작업 전에는 루트 `CLAUDE.md`도 읽는다.
+
+### 가이드 이미지 파생본
+
+가이드 카드 사진은 `srcset` 3단 사다리로 낸다. 원본 1024px 가 맨 윗칸이라 따로 만들지 않는다.
+
+| 칸 | 위치 | 크기 |
+|---|---|---|
+| `480w` | `public/thumbs/guide-480/` | 480×270 |
+| `768w` | `public/thumbs/guide-768/` | 768×432 |
+| `1024w` | `public/thumbs/` (원본) | 1024×576 |
+
+`sizes` 는 `06-render.js` 의 `GUIDE_SIZES` 하나뿐이고 **반드시 `styles.css` 의 실제 중단점을
+따라가야 한다.** 지금은 `1039px`(옵션 그리드가 1열이 되는 지점)과 `1680px`(트랙 확대).
+브라우저는 레이아웃을 계산하기 전에 이 선언만 보고 후보를 고르므로, 넘겨 선언하면 큰 파일을
+받아 바이트만 손해지만 **모자라게 선언하면 작은 파일을 늘려 그린다.**
+
+> 실제로 당한 적이 있다. `sizes` 가 `700px`·`1100px` 중단점을 쓰고 있었는데 CSS 에 그런
+> 중단점이 없었다. 701~1039px 구간에서 카드는 970px 까지 커지는데 선언은 468px 이라
+> 768px 짜리를 받아 늘려 그렸다. 파일도 문법도 멀쩡해서 정적 검사는 전부 통과했다.
+
+원본을 교체한 뒤에는 ImageMagick 7 이 있는 환경에서 `npm run generate:guide-assets` 를
+실행하고 생성 파일을 함께 커밋한다.
+
+- `npm run verify:guide-assets` — 20장 목록·WebP 형식·**실제 치수**·16:9·총량·`sizes` 중단점이
+  `styles.css` 에 실재하는지
+- `npm run test:e2e` — 폭 9종에서 **실제 카드 폭**과 선언·선택된 파일을 대조
+
+`GUIDE_SIZES` · `verify-guide-assets.mjs` 의 `RUNGS` · `generate-guide-variants.mjs` 셋이
+어긋나면 검수가 잡는다.
 
 ### 대상 모델 추가
 
@@ -73,8 +103,10 @@ Seedance 2.0 은 1.0/1.5 와 달리 **네이티브 오디오·멀티숏·최대 
 | `npm run lint:css` | CSS 자책골(shorthand 가 longhand 를 덮어씀·주석 깨짐) |
 | `npm run test:smoke` | 3개 앱이 jsdom 에서 뜨는지 · 레일 순서 · 참조 자산 존재 |
 | `npm run verify:storage` `verify:copy` `verify:pwa` `verify:seedance` | 각 기능의 회귀 |
-| `npm run verify:config` | 앱 설정이 실재하는 섹션·항목을 가리키는지 |
-| `npm run test:e2e` | **실제 브라우저**(Playwright) |
+| `npm run verify:config` | 앱 설정의 모양과 실재하는 섹션·항목 참조 |
+| `npm run verify:guide-assets` | 가이드 사진 사다리 계약(존재·치수·16:9·총량·중단점) |
+| `npm run test:e2e` | **실제 브라우저**(Playwright) — 3앱 핵심 흐름·레이아웃·테마·키보드·사진 해상도 |
+| `npm run verify:all` | 위 전체 검사 + 빌드 + 의존성 audit |
 
 `test:e2e` 만 볼 수 있는 것이 있다. jsdom 은 레이아웃을 계산하지 않아 겹침·넘침·
 고정 위치를 못 잡고, ESM 번들을 실행하지 못해 '빌드된 결과가 정말 도는지'도
@@ -83,16 +115,17 @@ Seedance 2.0 은 1.0/1.5 와 달리 **네이티브 오디오·멀티숏·최대 
 
 처음 한 번은 브라우저를 받아야 한다: `npx playwright install --with-deps chromium`
 
-앱 설정(`src/apps/*/app.js` 의 `CONFIG`)의 모양은 `src/app-config.d.ts` 에 적어 뒀다.
-app.js 는 SLOT 으로 engine.js 에 삽입되는 조각이라 그 자체로는 모듈이 아니어서
-타입만으로는 '문자열이다'까지밖에 못 본다. 그 값이 **실재하는 섹션·항목인지**는
-`verify:config` 가 본다 — order 가 sections 밖을 가리키는지, wiz·프리셋이 없는
-항목을 부르는지, 모델 키가 겹치는지, build() 가 모든 키에서 문자열을 내놓는지.
+앱 설정(`src/apps/*/app.js` 의 `CONFIG`)의 문서형 계약은 `src/app-config.d.ts`에 있다.
+app.js는 SLOT으로 `src/shared/engine/*.js`에 삽입되는 전역 조각이어서 현재 TypeScript의
+정적 강제 대상은 아니다. 대신 `verify:config`가 필수 필드 타입과 값의 실재성을 함께 본다 —
+order가 sections 밖을 가리키는지, wiz·프리셋이 없는 항목을 부르는지, 모델 키가 겹치는지,
+build()가 모든 키에서 문자열을 내놓는지 확인한다. CONFIG를 별도 모듈로 분리할 때
+`AppConfig`를 정적 타입으로 직접 연결하는 것이 다음 구조 개선 과제다.
 
 ## 저장 상태 호환성
 
 앱별 작업 상태는 `prompt-builder:<app-id>` 키로 localStorage에 저장되고,
-`src/shared/engine.js`의 `STORE_V`와 `migrateSavedState()`가 호환성을 관리한다.
+`src/shared/engine/08-sync.js`의 `STORE_V`와 `migrateSavedState()`가 호환성을 관리한다.
 
 - 선택 필드 추가처럼 기존 값을 그대로 읽을 수 있는 변경은 기본값으로 보완한다.
 - 필드 타입·의미를 바꾸는 비호환 변경에서만 `STORE_V`를 올린다.
@@ -101,15 +134,22 @@ app.js 는 SLOT 으로 engine.js 에 삽입되는 조각이라 그 자체로는 
 
 ## 배포 (Cloudflare Workers)
 
-운영 정본은 `wrangler.jsonc`가 가리키는 Cloudflare Workers 정적 에셋 배포다.
-현재 운영 주소는 `https://media-prompt-builder.okeyido.workers.dev/`이다.
+운영 정본은 `wrangler.jsonc`가 가리키는 Cloudflare Workers 정적 에셋 배포이고,
+운영 주소는 `https://media-prompt-builder.okeyido.workers.dev/`이다.
+`dist/`가 통째로 올라가며 `/image/`, `/t2v/`, `/i2v/` 경로를 제공한다.
+
+**`main`에 push 하면 Cloudflare가 알아서 배포한다.** 보통은 push 만 하면 끝이고
+20~60초 뒤 반영된다. GitHub Actions CI 는 이와 별개로 타입·빌드·CSS 린트·스모크·
+각종 회귀 검증과 E2E 를 돌린다.
+
+손으로 밀어야 할 때만 우회로를 쓴다.
 
 ```bash
-npm ci
-npm run build
-npx wrangler deploy
+npm run deploy      # release-check → verify:all → wrangler deploy --strict
 ```
 
-`dist/`가 Workers 정적 에셋으로 올라가며, `/image/`, `/t2v/`, `/i2v/` 경로를 제공한다.
-PR/push CI는 타입 검사·빌드·CSS 린트·스모크·저장/복사·Seedance 회귀 검증을 수행하고,
-운영 배포는 별도로 실행한다.
+`release-check.mjs`는 `main`인지, 작업 트리가 깨끗한지, `origin/main`과 같은지,
+그 커밋의 CI가 성공했는지를 본다. **`gh` CLI 가 필요하다** — 없으면 그 단계에서 멈춘다.
+
+정적 에셋은 `cache-control: max-age=0, must-revalidate`로 나간다. 그래서 가이드 사진처럼
+파일명을 그대로 두고 내용만 바꿔도 브라우저가 매번 재검증하고, 캐시 버스팅을 따로 걸 필요가 없다.

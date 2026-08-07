@@ -157,12 +157,24 @@ DATA.forEach((sec,i)=>{
 document.getElementById("m-all").textContent=`전문가 ${Object.keys(lookup).length}개`;
 
 /* 가이드 선택지의 미리보기 — 전용 예시 사진이 있으면 반응형 파생본을,
-   없으면 그 선택지가 적용하는 첫 항목의 SVG 도식·스와치를 재사용한다. */
+   없으면 그 선택지가 적용하는 첫 항목의 SVG 도식·스와치를 재사용한다.
+
+   sizes 는 반드시 styles.css 의 실제 중단점을 따라가야 한다. 브라우저는 이
+   선언만 보고 내려받을 후보를 고르므로, 선언이 실제보다 작으면 작은 파일을
+   받아 늘려 그린다 — 흐릿함의 원인이 정확히 이것이다.
+     · ≤1039px  .opts.pvgrid 가 1열이 되고 레일도 아래로 내려가므로
+                카드는 사실상 화면 폭 전체다 (.wrap 좌우 여백 14px×2).
+     · >1039px  auto-fill minmax(260px,1fr) 로 여러 열. 실측 272~391px.
+     · ≥1680px  트랙이 minmax(300px,1fr) 로 커진다.
+   실제 카드 폭과 이 선언이 어긋나지 않는지는 E2E 가 폭마다 대조한다. */
+const GUIDE_SIZES="(max-width:1039px) calc(100vw - 28px), (max-width:1679px) 384px, 460px";
 function guideImg(src){
   const file=src.split("/").pop();
-  const small=`/thumbs/guide-480/${file}`, medium=`/thumbs/guide-768/${file}`;
-  return `<img src="${small}" srcset="${small} 480w, ${medium} 768w"`
-    +` sizes="(max-width:700px) calc(100vw - 44px), (max-width:1100px) calc(50vw - 32px), 260px"`
+  /* 1024 는 원본 그대로다. 1열 구간에서 카드가 1000px 가까이 커지는데
+     768 만으로는 CSS 픽셀도 못 채운다. 원본을 사다리 맨 위 칸으로 쓴다. */
+  const small=`/thumbs/guide-480/${file}`, medium=`/thumbs/guide-768/${file}`, full=`/thumbs/${file}`;
+  return `<img src="${small}" srcset="${small} 480w, ${medium} 768w, ${full} 1024w"`
+    +` sizes="${GUIDE_SIZES}"`
     +` alt="" loading="lazy" decoding="async" width="768" height="432">`;
 }
 function optPv(label, payload){
