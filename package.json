@@ -18,8 +18,11 @@
     "verify:pwa": "node scripts/verify-pwa.mjs",
     "verify:seedance": "node scripts/verify-seedance.mjs",
     "verify:config": "node scripts/verify-config.mjs",
+    "verify:guide-assets": "node scripts/verify-guide-assets.mjs",
+    "generate:guide-assets": "node scripts/generate-guide-variants.mjs",
     "lint:css": "node scripts/lint-css.mjs",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "verify:all": "npm run typecheck && npm run build && npm run lint:css && npm run test:smoke && npm run verify:storage && npm run verify:copy && npm run verify:pwa && npm run verify:seedance && npm run verify:config && npm run verify:guide-assets && npm run test:e2e && npm audit --audit-level=moderate"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",

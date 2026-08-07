@@ -1,0 +1,27 @@
+/* GUIDE_IMG 원본에서 480/768px WebP 파생본을 만든다.
+   필요 도구: ImageMagick 7의 `magick`. 원본은 건드리지 않는다. */
+import { mkdirSync, readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+
+function guideFiles(app = "image") {
+  const source = readFileSync(`src/apps/${app}/app.js`, "utf8");
+  const block = source.match(/const GUIDE_IMG\s*=\s*\{([\s\S]*?)\};\/\*==SLOT:2==\*\//)?.[1];
+  if (!block) throw new Error(`${app}: GUIDE_IMG 블록을 찾지 못함`);
+  return [...new Set([...block.matchAll(/"\/thumbs\/(t-\d{3}\.webp)"/g)].map(match => match[1]))].sort();
+}
+
+const files = guideFiles();
+for (const { width, quality } of [{ width: 480, quality: 74 }, { width: 768, quality: 76 }]) {
+  const dir = `public/thumbs/guide-${width}`;
+  mkdirSync(dir, { recursive: true });
+  for (const file of files) {
+    const result = spawnSync("magick", [
+      `public/thumbs/${file}`, "-resize", `${width}x${width}>`, "-strip",
+      "-quality", String(quality), "-define", "webp:method=6", `${dir}/${file}`,
+    ], { stdio: "inherit" });
+    if (result.error?.code === "ENOENT")
+      throw new Error("ImageMagick `magick`을 찾지 못했습니다. 설치 후 다시 실행하세요.");
+    if (result.status !== 0) process.exit(result.status || 1);
+  }
+}
+console.log(`가이드 이미지 ${files.length}장 × 2크기 생성 완료`);

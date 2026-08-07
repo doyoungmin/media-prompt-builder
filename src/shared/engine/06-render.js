@@ -156,11 +156,18 @@ DATA.forEach((sec,i)=>{
 });
 document.getElementById("m-all").textContent=`전문가 ${Object.keys(lookup).length}개`;
 
-/* 가이드 선택지의 미리보기 — 전용 예시 사진이 있으면 그것을,
-   없으면 그 선택지가 적용하는 첫 항목의 SVG 도식·스와치를 재사용한다 */
+/* 가이드 선택지의 미리보기 — 전용 예시 사진이 있으면 반응형 파생본을,
+   없으면 그 선택지가 적용하는 첫 항목의 SVG 도식·스와치를 재사용한다. */
+function guideImg(src){
+  const file=src.split("/").pop();
+  const small=`/thumbs/guide-480/${file}`, medium=`/thumbs/guide-768/${file}`;
+  return `<img src="${small}" srcset="${small} 480w, ${medium} 768w"`
+    +` sizes="(max-width:700px) calc(100vw - 44px), (max-width:1100px) calc(50vw - 32px), 260px"`
+    +` alt="" loading="lazy" decoding="async" width="768" height="432">`;
+}
 function optPv(label, payload){
   if(typeof GUIDE_IMG!=="undefined" && GUIDE_IMG[label])
-    return `<span class="pv ph"><img src="${GUIDE_IMG[label]}" alt="" loading="lazy"></span>`;
+    return `<span class="pv ph">${guideImg(GUIDE_IMG[label])}</span>`;
   for(const k of payload){ const p=pvOf(k); if(p) return p; }
   return "";
 }
