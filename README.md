@@ -105,7 +105,7 @@ Seedance 2.0 은 1.0/1.5 와 달리 **네이티브 오디오·멀티숏·최대 
 | `npm run verify:storage` `verify:copy` `verify:pwa` `verify:seedance` | 각 기능의 회귀 |
 | `npm run verify:config` | 앱 설정의 모양과 실재하는 섹션·항목 참조 |
 | `npm run verify:guide-assets` | 가이드 사진 사다리 계약(존재·치수·16:9·총량·중단점) |
-| `npm run test:e2e` | **실제 브라우저**(Playwright) — 3앱 핵심 흐름·레이아웃·테마·키보드·사진 해상도 |
+| `npm run test:e2e` | **실제 브라우저**(Playwright) — 3앱 핵심 흐름·레이아웃·테마·키보드·사진 해상도·접근성 |
 | `npm run verify:all` | 위 전체 검사 + 빌드 + 의존성 audit |
 
 `test:e2e` 만 볼 수 있는 것이 있다. jsdom 은 레이아웃을 계산하지 않아 겹침·넘침·
@@ -113,7 +113,16 @@ Seedance 2.0 은 1.0/1.5 와 달리 **네이티브 오디오·멀티숏·최대 
 확인하지 못한다. 그래서 E2E 는 `vite preview` 로 **빌드 산출물**을 띄우고
 폭 1440·1100·900·768·430·360px 에서 검사한다.
 
-처음 한 번은 브라우저를 받아야 한다: `npx playwright install --with-deps chromium`
+처음 한 번은 브라우저를 받아야 한다: `npx playwright install --with-deps chromium webkit`
+
+E2E 는 **크로미움과 사파리(WebKit) 양쪽**에서 돈다. 이 앱은 `aspect-ratio` · `color-mix` ·
+`100dvh` · `env(safe-area-inset)` 를 쓰는데 전부 사파리에서 늦게 들어왔거나 동작이 달랐던
+것들이라, 크로미움만 보면 맥·아이폰 사용자에게 어떻게 보이는지 알 수 없다.
+
+접근성(`e2e/a11y.spec.ts`)은 axe 로 **두 테마 × 세 탭 × 데스크톱·모바일**을 훑는다.
+색 대비는 계산해야 알 수 있어서 눈으로는 못 잡는다 — 붙이자마자 라이트 테마에서
+4:1 짜리(AA 는 4.5:1 요구)가 하나 나왔다. 이 검사만 크로미움에서 돈다. 대비·레이블·
+역할은 DOM 과 CSS 의 사실이라 엔진마다 달라지지 않는다.
 
 앱 설정(`src/apps/*/app.js` 의 `CONFIG`)의 문서형 계약은 `src/app-config.d.ts`에 있다.
 app.js는 SLOT으로 `src/shared/engine/*.js`에 삽입되는 전역 조각이어서 현재 TypeScript의

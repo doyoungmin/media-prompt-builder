@@ -260,8 +260,11 @@
   .grp-label{font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;
     margin-bottom:9px;font-weight:600}
   .grp-label u{text-decoration:none;color:var(--tx4);font-size:11px;margin-left:6px;text-transform:none;letter-spacing:0}
+  /* opacity 를 걸면 안 된다 — 11px 글자라 AA 가 4.5:1 을 요구하는데,
+     라이트 테마에서 .75 를 곱하면 #075985 가 #4380a2 로 섞여 4:1 로 떨어진다.
+     연하게 보이는 건 이미 --acc2 와 작은 글자 크기가 맡고 있다. */
   .grp-label i{font-style:normal;color:var(--acc2);font-size:11px;margin-left:6px;
-    text-transform:none;letter-spacing:0;opacity:.75}
+    text-transform:none;letter-spacing:0}
   .chips{display:flex;flex-wrap:wrap;gap:6px}
   .chip{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 12px;
     cursor:pointer;transition:.12s;text-align:left;font-family:inherit;color:var(--tx);max-width:100%}
