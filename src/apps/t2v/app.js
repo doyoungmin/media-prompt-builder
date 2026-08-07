@@ -1,4 +1,4 @@
-/* t2v 앱 전용 코드 — 공통 엔진(src/shared/engine.js)의 SLOT 에 삽입되는 부분.
+/* t2v 앱 전용 코드 — 공통 엔진(src/shared/engine/*.js)의 SLOT 에 삽입되는 부분.
    앱별 데이터·설정(CONFIG/프리셋/썸네일 맵 등)은 여기서 수정한다. */
 /*==SLOT:1==*/
 const PHOTO = {

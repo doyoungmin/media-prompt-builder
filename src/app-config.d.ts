@@ -1,9 +1,9 @@
 /* 앱 설정(CONFIG)의 모양 — 세 앱의 app.js 가 이 타입을 만족해야 한다.
-   engine.js 는 2,300줄이 넘고 checkJs 도 꺼져 있어서, 설정 쪽 오타
+   엔진은 조각으로 나뉘어 있고 checkJs 도 꺼져 있어서, 설정 쪽 오타
    (모델 키를 잘못 쓴다든가, sections 에 없는 섹션을 order 에 넣는다든가)는
    화면을 열어 보기 전까지 아무도 잡아 주지 않았다. 여기만 먼저 묶는다.
 
-   app.js 는 SLOT 으로 engine.js 에 삽입되는 조각이라 그 자체로는 모듈이
+   app.js 는 SLOT 으로 engine 조각들에 삽입되는 조각이라 그 자체로는 모듈이
    아니다. 그래서 import 하지 않고 전역 타입으로 선언만 해 두고, 값이 실제로
    이 모양인지는 scripts/verify-config.mjs 가 실행 시점에 확인한다. */
 

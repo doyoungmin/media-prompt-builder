@@ -28,7 +28,7 @@ jobs:
       - run: npm run verify:guide-assets
       # 실제 브라우저 검증 — jsdom 은 레이아웃을 계산하지 않고 ESM 번들도 못 돌린다.
       # 빌드된 결과가 정말 뜨는지와 폭별 레이아웃은 여기서만 확인된다.
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps chromium webkit
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()

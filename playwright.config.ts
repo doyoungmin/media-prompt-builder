@@ -17,7 +17,14 @@ export default defineConfig({
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  /* 사파리를 같이 본다. 이 앱은 aspect-ratio · color-mix · 100dvh ·
+     env(safe-area-inset) 를 쓰는데, 전부 사파리에서 늦게 들어왔거나 동작이
+     달랐던 것들이다. 크로미움만 보면 맥·아이폰 사용자에게 어떻게 보이는지
+     아무도 모르는 채로 배포된다. */
+  projects: [
+    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    { name: "webkit", use: { ...devices["Desktop Safari"] } },
+  ],
   webServer: {
     /* --host 를 명시한다. vite preview 는 기본이 localhost 인데, CI 러너에서는
        localhost 가 ::1(IPv6) 로 먼저 풀려 서버가 IPv6 에만 붙는다. 그러면
