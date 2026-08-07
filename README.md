@@ -149,25 +149,25 @@ build()가 모든 키에서 문자열을 내놓는지 확인한다. CONFIG를 �
 
 `main`에 push 하면 배포된다. 보통은 push 만 하면 끝이다.
 
-### 검증을 통과한 것만 나가게 하기 (전환 필요)
+### 배포는 검증을 통과한 뒤에만 일어난다
 
-예전에는 Cloudflare 가 push 를 직접 받아 배포했다. 그러면 검증과 배포가 나란히 달리는데,
-실측하면 **배포 20초 · CI 1분**이라 CI 가 빨간불이어도 이미 운영에 나가 있었다. 지금까지
-안 터진 건 push 전에 손으로 다 돌려 봤기 때문이지 구조가 막아 준 게 아니다.
+`ci.yml` 의 `deploy` job 이 `needs: check` 라 **검증이 전부 통과해야만** 배포한다.
+배포 뒤에는 네 경로(`/` `/image/` `/t2v/` `/i2v/`)를 실제로 받아 200 인지 확인한다.
+커밋 SHA 앞 12자리를 버전 태그로, 커밋 제목을 메시지로 남긴다.
 
-그래서 `ci.yml` 에 `deploy` job 을 뒀다. `needs: check` 라 **검증이 통과해야만** 배포하고,
-배포 뒤에 네 경로(`/` `/image/` `/t2v/` `/i2v/`)를 실제로 받아 200 인지 확인한다.
+> 2026-08-07 이전에는 Cloudflare 가 push 를 직접 받아 배포했다. 검증과 배포가 나란히
+> 달리는 구조였고, 실측하면 **배포 20초 · CI 1분**이라 CI 가 빨간불이어도 이미 운영에
+> 나가 있었다. 그때 안 터진 건 push 전에 손으로 다 돌려 봤기 때문이지 구조가 막아 준
+> 게 아니다. 지금은 Cloudflare 쪽 Git 연동을 끊었고 배포 경로가 GitHub 하나뿐이다.
+> **Cloudflare 대시보드에서 Git 을 다시 연결하면 그 시절로 돌아간다.** 하지 말 것.
 
-이 job 은 자격증명이 없으면 조용히 건너뛴다. 그래서 아래 세 단계를 밟기 전까지는
-Cloudflare 쪽이 계속 배포하고, 밟는 순간 이쪽이 이어받는다 — **아무도 배포하지 않는
-구간 없이** 갈아탈 수 있다.
-
-1. Cloudflare 대시보드 → My Profile → API Tokens → **Edit Cloudflare Workers** 템플릿으로
-   토큰 발급. Account ID 는 Workers 개요 화면 오른쪽에 있다
-2. GitHub 저장소 → Settings → Secrets and variables → Actions 에
-   `CLOUDFLARE_API_TOKEN` 과 `CLOUDFLARE_ACCOUNT_ID` 추가
-3. 그 다음 push 가 GitHub 에서 배포되는지 확인한 뒤, Cloudflare 대시보드에서
-   이 Worker 의 **Git 연동(Builds)을 해제**한다. 이 순서를 지켜야 겹치거나 비지 않는다
+배포에 필요한 자격증명은 저장소 시크릿 `CLOUDFLARE_API_TOKEN` · `CLOUDFLARE_ACCOUNT_ID`
+두 개다. 없으면 `deploy` job 이 **실패하지 않고 조용히 건너뛴다** — 초록불인데 배포가
+안 됐다면 여기부터 본다 (job 로그에 그 취지의 notice 가 남는다).
+토큰은 Cloudflare 의 **Edit Cloudflare Workers**(한국어 UI 에서는 "Cloudflare Workers 편집")
+템플릿으로 만들고, 계정 리소스는 본인 계정, 영역 리소스는 `모든 영역` 으로 둔다.
+`workers.dev` 만 쓰므로 영역이 없는데 템플릿에 `영역 / Workers 경로` 권한이 들어 있어서
+비워 두면 진행이 막힌다.
 
 ### 롤백
 

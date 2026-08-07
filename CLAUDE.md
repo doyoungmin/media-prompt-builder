@@ -160,9 +160,16 @@ E2E 는 처음 한 번 브라우저를 받아야 한다: `npx playwright install
 
 ## 5. 배포
 
-**push 하면 Cloudflare 가 자동으로 배포한다.** 운영 주소는
-`https://media-prompt-builder.okeyido.workers.dev/`. 보통은 push 만 하면 끝이고,
-20~60초 뒤 반영된다.
+**push 하면 GitHub Actions 가 검증을 통과한 뒤에만 배포한다.** 운영 주소는
+`https://media-prompt-builder.okeyido.workers.dev/`. push 만 하면 끝이고 3~4분 뒤 반영된다.
+`ci.yml` 의 `deploy` job(`needs: check`)이 하고, 배포 뒤 네 경로를 실제로 받아 200 인지 본다.
+
+2026-08-07 이전에는 Cloudflare 가 push 를 직접 받았다. 검증과 배포가 나란히 달려서
+**CI 가 빨간불이어도 이미 운영에 나가 있었다**(실측 배포 20초 · CI 1분). 지금은 Cloudflare
+쪽 Git 연동을 끊어 배포 경로가 하나뿐이다 — 대시보드에서 다시 연결하면 그 시절로 돌아간다.
+
+초록불인데 배포가 안 됐다면 시크릿(`CLOUDFLARE_API_TOKEN` · `CLOUDFLARE_ACCOUNT_ID`)부터
+본다. 없으면 `deploy` 가 실패하지 않고 조용히 건너뛴다.
 
 `npm run deploy` 는 손으로 밀어야 할 때만 쓰는 우회로다 (`release-check` → `verify:all` →
 `wrangler deploy --strict`). `release-check.mjs` 는 `gh` CLI 를 쓰므로 없으면 그 단계에서 멈춘다.
