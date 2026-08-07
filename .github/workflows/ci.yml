@@ -31,12 +31,21 @@ jobs:
       - run: npm run verify:seedance
       - run: npm run verify:config
       - run: npm run verify:guide-assets
+      # 운영 스크립트 판정 로직 — 네트워크·git 없이 순수 함수만 검사한다.
+      # 예전에 release-check 가 첫 줄에서 터지는 채로 커밋돼 있었는데 아무도 몰랐다.
+      - run: npm run verify:ops
+      # 문서에 적힌 배포 명령이 실제로 도는지. 업로드만 빼고 전 경로를 밟는다.
+      # --dry-run 은 release-check 를 --skip-ci-status 로 부른다 — 안 그러면
+      # 지금 돌고 있는 자기 자신의 CI 가 끝나기를 기다리게 된다.
+      - run: node scripts/deploy.mjs --dry-run
       # 실제 브라우저 검증 — jsdom 은 레이아웃을 계산하지 않고 ESM 번들도 못 돌린다.
       # 빌드된 결과가 정말 뜨는지와 폭별 레이아웃은 여기서만 확인된다.
       - run: npx playwright install --with-deps chromium webkit
       - run: npm run test:e2e
+      # 취소된 실행도 왜 오래 걸렸는지 볼 일이 있다. 다만 러너가 즉시 종료되면
+      # 업로드까지 못 가므로 "가능하면 남긴다" 정도로 이해할 것.
       - uses: actions/upload-artifact@v4
-        if: failure()
+        if: failure() || cancelled()
         with:
           name: playwright-debug
           path: |
@@ -44,6 +53,19 @@ jobs:
             test-results/
           if-no-files-found: warn
           retention-days: 7
+
+  # 의존성 권고는 따로 본다. 우리 코드와 무관한 상위 패키지 권고 하나로 배포가
+  # 막히면 곤란해서 check 와 분리하고 실패해도 넘어가게 뒀다. 대신 결과는 남으니
+  # Critical·High 가 뜨면 사람이 판단해서 올린다.
+  audit:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm audit --audit-level=moderate
 
   # 검증이 통과한 main 커밋만 운영으로 나간다.
   #
@@ -64,9 +86,15 @@ jobs:
         id: gate
         env:
           TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        # 둘 다 본다. 토큰만 검사하면 계정 ID 가 빠졌을 때 wrangler 가 엉뚱한 데서
+        # 헷갈리는 소리를 한다. 빠진 이름을 찍어 줘야 어디를 채울지 안다.
         run: |
-          if [ -z "$TOKEN" ]; then
-            echo "::notice::CLOUDFLARE_API_TOKEN 이 없어 배포를 건너뛴다 (아직 Cloudflare 쪽 Git 연동이 배포 중일 것)"
+          missing=""
+          [ -z "$TOKEN" ] && missing="$missing CLOUDFLARE_API_TOKEN"
+          [ -z "$ACCOUNT" ] && missing="$missing CLOUDFLARE_ACCOUNT_ID"
+          if [ -n "$missing" ]; then
+            echo "::notice::시크릿이 없어 배포를 건너뛴다 —$missing (저장소 Settings → Secrets and variables → Actions)"
             echo "ready=false" >> "$GITHUB_OUTPUT"
           else
             echo "ready=true" >> "$GITHUB_OUTPUT"
