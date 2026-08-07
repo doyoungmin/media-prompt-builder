@@ -93,5 +93,27 @@ console.log("deployArgs — wrangler 인자 조립");
   같다(a[a.indexOf("--message") + 1], 'fix: "그것" 을 고침');
 });
 
+/* 문서가 부르는 명령이 실재하는가.
+
+   README 와 CLAUDE.md 에 `npm run X` 라고 적어 놓고 X 를 지우거나 이름을 바꾸면
+   아무도 모른다. 다음 사람은 적힌 대로 쳤다가 "Missing script" 를 보고 만다.
+   실제로 여기서 문서만 고치고 다른 쪽을 놓친 적이 두 번 있다. */
+console.log("문서 ↔ package.json");
+const { readFileSync } = await import("node:fs");
+const scripts = JSON.parse(readFileSync("package.json", "utf8")).scripts;
+const 문서 = ["README.md", "CLAUDE.md"].map(f => readFileSync(f, "utf8")).join("\n");
+const 부름 = [...new Set([...문서.matchAll(/npm run ([a-z][a-z0-9:-]*)/g)].map(m => m[1]))].sort();
+검사(`문서가 부르는 ${부름.length}개 명령이 전부 package.json 에 있다`, () => {
+  const 없음 = 부름.filter(k => !(k in scripts));
+  if (없음.length) throw new Error(`없는 명령: ${없음.join(", ")}`);
+});
+검사("문서가 낡은 playwright 설치 문구를 쓰지 않는다", () => {
+  /* 사파리를 붙이면서 README 만 고치고 CLAUDE.md 를 놓쳤다. 그대로 따라 하면
+     사파리 테스트가 "Executable doesn't exist" 로 무더기로 죽는다. */
+  const m = [...문서.matchAll(/playwright install[^\n`]*/g)].map(s => s[0]);
+  const 빠진 = m.filter(s => !s.includes("webkit"));
+  if (빠진.length) throw new Error(`webkit 이 빠짐: ${빠진.join(" | ")}`);
+});
+
 if (fail) process.exit(1);
 console.log("운영 스크립트 판정 로직 검수 통과");

@@ -188,15 +188,34 @@ npm run test:e2e                # 폭별 실제 카드 대조
 | `verify:storage` `verify:copy` `verify:pwa` `verify:seedance` | 각 기능 회귀 |
 | `verify:config` | 앱 설정이 실재하는 섹션·항목을 가리키는지 |
 | `verify:guide-assets` | 가이드 사진 사다리 계약 |
+| `verify:ops` | 배포 판정 로직 — stdout 없음·CI 진행 중/실패/재실행·인자 조립 |
 | `test:e2e` | **실제 브라우저** — 크로미움 + 사파리. 레이아웃·번들 실행·사진 해상도·접근성 |
 | `verify:all` | 위 전부 + `npm audit` |
 
 E2E 는 처음 한 번 브라우저를 받아야 한다: `npx playwright install --with-deps chromium webkit`
 (**webkit 을 빼면** 사파리 테스트가 "Executable doesn't exist" 로 무더기로 죽는다. 앱 문제가 아니다.)
 
-`verify:all` 끝에 `npm audit --audit-level=moderate` 가 붙어 있다. 우리 코드와 무관한 권고
-하나로 전체가 막힐 수 있다. 그럴 때는 **막힌 채로 두지 말고** 올릴 수 있으면 올리고,
-못 올리면 왜 놔두는지 근거를 남긴 뒤 개별 명령으로 우회한다 — 조용히 임계값을 낮추지 말 것.
+`npm audit` 은 `verify:all` 에 없다. CI 의 **별도 비차단 job** 으로 돈다 — 우리 코드와
+무관한 상위 패키지 권고 하나로 운영 배포가 막히는 건 과하다. 대신 결과는 남으니
+Critical·High 가 뜨면 사람이 판단해서 올린다. **조용히 임계값을 낮추지 말 것.**
+
+### 테스트가 "가끔" 맞는 것도 틀린 것이다
+
+접근성 검사가 우연히 통과하고 있었다(반복 60회에 3회 실패). 버튼이 `transition:.15s` 로
+살아나는 중간을 axe 가 재서, 가라앉으면 7.4:1 인 대비가 4.49:1 로 잡혔다.
+지금은 `page.emulateMedia({ reducedMotion: "reduce" })` 로 앱의 기존
+`prefers-reduced-motion` 경로를 켜서 전환을 없앤다.
+
+여기서 한 번 더 속았다. **`test.use({ reducedMotion })` 는 Playwright 1.62 에서 조용히
+무시된다** — 오류도 경고도 없이 미디어 질의가 false 라, 고쳤다고 믿는데 그대로 깨진다.
+그래서 `a11y.spec.ts` 는 켜졌는지를 단언으로 확인하고 넘어간다.
+
+**타이밍이 걸린 테스트는 한 번 통과로 끝내지 말 것.** 반복해서 돌려 본다.
+
+```bash
+npx playwright test e2e/a11y.spec.ts --project=chromium --workers=1 --repeat-each=5
+npx playwright test e2e/a11y.spec.ts --project=chromium --workers=6 --repeat-each=3
+```
 
 **타입은 여기까지밖에 못 본다.** `app.js` 는 SLOT 으로 끼워 넣는 조각이라 그 자체로 모듈이
 아니다. 그래서 `src/app-config.d.ts` 는 모양만 적어 두고, 그 값이 *실재하는* 섹션·항목인지는
@@ -217,8 +236,19 @@ E2E 는 처음 한 번 브라우저를 받아야 한다: `npx playwright install
 초록불인데 배포가 안 됐다면 시크릿(`CLOUDFLARE_API_TOKEN` · `CLOUDFLARE_ACCOUNT_ID`)부터
 본다. 없으면 `deploy` 가 실패하지 않고 조용히 건너뛴다.
 
-`npm run deploy` 는 손으로 밀어야 할 때만 쓰는 우회로다 (`release-check` → `verify:all` →
-`wrangler deploy --strict`). `release-check.mjs` 는 `gh` CLI 를 쓰므로 없으면 그 단계에서 멈춘다.
+`npm run deploy` 는 GitHub 나 Cloudflare 에 문제가 있어 손으로 밀어야 할 때 쓰는 비상
+경로다 (`release-check` → `verify:all` → `wrangler deploy`). `npm run deploy -- --dry-run`
+은 업로드만 빼고 전 경로를 밟는다. **CI 가 매 push 마다 이 dry-run 을 돌린다** — 문서에
+적힌 명령이 실제로 도는지 확인하기 위해서다.
+
+> `release-check` 는 예전에 첫 줄에서 터지는 채로 커밋돼 있었다. `git fetch` 를
+> `stdio:"inherit"` 로 돌리면 `stdout` 이 `null` 인데 무조건 `.trim()` 을 불렀다. 문법이
+> 멀쩡해서 정적 검사는 전부 통과했고, **아무도 한 번도 실행해 보지 않아서** 문서에는
+> 쓸 수 있는 명령으로 적혀 있었다. 판정 로직을 `ops-lib.mjs` 로 내리고 `verify:ops` 가
+> 검사하게 한 게 그래서다. `node --check` 로는 이런 걸 못 잡는다.
+
+`--dry-run` 은 `release-check` 를 `--skip-ci-status` 로 부른다. CI 안에서 자기 자신의
+실행 결과를 기다리면 영원히 `in_progress` 라 교착이 된다.
 
 가이드 사진은 파일명을 그대로 두고 내용만 바꾸는 일이 잦은데, 정적 에셋이
 `cache-control: max-age=0, must-revalidate` 로 나가서 브라우저가 매번 재검증한다.

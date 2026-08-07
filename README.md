@@ -105,8 +105,9 @@ Seedance 2.0 은 1.0/1.5 와 달리 **네이티브 오디오·멀티숏·최대 
 | `npm run verify:storage` `verify:copy` `verify:pwa` `verify:seedance` | 각 기능의 회귀 |
 | `npm run verify:config` | 앱 설정의 모양과 실재하는 섹션·항목 참조 |
 | `npm run verify:guide-assets` | 가이드 사진 사다리 계약(존재·치수·16:9·총량·중단점) |
+| `npm run verify:ops` | 배포 판정 로직(stdout 없음·CI 진행 중/실패/재실행·인자 조립) |
 | `npm run test:e2e` | **실제 브라우저**(Playwright) — 3앱 핵심 흐름·레이아웃·테마·키보드·사진 해상도·접근성 |
-| `npm run verify:all` | 위 전체 검사 + 빌드 + 의존성 audit |
+| `npm run verify:all` | 위 전체 검사 + 빌드 + E2E |
 
 `test:e2e` 만 볼 수 있는 것이 있다. jsdom 은 레이아웃을 계산하지 않아 겹침·넘침·
 고정 위치를 못 잡고, ESM 번들을 실행하지 못해 '빌드된 결과가 정말 도는지'도
@@ -177,11 +178,23 @@ Cloudflare 대시보드 → Worker → Deployments 에서 이전 버전을 고�
 손으로 밀어야 할 때만 우회로를 쓴다.
 
 ```bash
-npm run deploy      # release-check → verify:all → wrangler deploy --strict
+npm run deploy                # release-check → verify:all → wrangler deploy
+npm run deploy -- --dry-run   # 업로드만 빼고 전 경로. CI 가 매 push 마다 돌린다
 ```
 
 `release-check.mjs`는 `main`인지, 작업 트리가 깨끗한지, `origin/main`과 같은지,
-그 커밋의 CI가 성공했는지를 본다. **`gh` CLI 가 필요하다** — 없으면 그 단계에서 멈춘다.
+그 커밋의 CI가 성공했는지를 본다. **`gh` CLI 는 필요 없다** — 네이티브 `fetch` 로
+GitHub API 를 본다. `GITHUB_TOKEN`이 있으면 쓰고(시간당 5000회) 없으면 공개 API(60회)다.
+
+> 이 스크립트는 한때 첫 줄에서 터지는 채로 커밋돼 있었다. `git fetch`를 `stdio:"inherit"`로
+> 돌리면 `stdout`이 `null`인데 무조건 `.trim()`을 불렀다. 문법이 멀쩡해 정적 검사는 전부
+> 통과했고, **아무도 실행해 보지 않아서** 문서에는 쓸 수 있는 명령으로 적혀 있었다.
+> 그래서 판정 로직을 `scripts/ops-lib.mjs`로 내리고 `verify:ops`가 케이스별로 검사한다.
+> `--dry-run`은 `release-check`를 `--skip-ci-status`로 부른다 — CI 안에서 자기 자신의
+> 실행을 기다리면 교착이다.
+
+`npm audit`은 `verify:all`에 없다. CI의 **별도 비차단 job**으로 돈다. 우리 코드와 무관한
+상위 패키지 권고 하나로 운영 배포가 막히는 건 과하다.
 
 정적 에셋은 `cache-control: max-age=0, must-revalidate`로 나간다. 그래서 가이드 사진처럼
 파일명을 그대로 두고 내용만 바꿔도 브라우저가 매번 재검증하고, 캐시 버스팅을 따로 걸 필요가 없다.
