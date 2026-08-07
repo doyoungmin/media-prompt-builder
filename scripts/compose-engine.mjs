@@ -9,13 +9,24 @@
  *  파일명 앞의 번호가 곧 실행 순서다. */
 import { readFileSync, readdirSync } from "node:fs";
 
-const M = /\/\*==SLOT:(\d+)==\*\//g;
+const SLOT_RE = /\/\*==SLOT:(\d+)==\*\//g;
+const PART_RE = /^(\d{2})-.+\.js$/;
 
 /** 조각 파일 이름들 (실행 순서대로) — vite 가 감시 대상으로도 쓴다 */
 export function enginePartFiles(root = ".") {
-  return readdirSync(`${root}/src/shared/engine`)
-    .filter(f => f.endsWith(".js"))
-    .sort();
+  const files = readdirSync(`${root}/src/shared/engine`).filter(f => f.endsWith(".js"));
+  const numbered = files.map(file => {
+    const match = file.match(PART_RE);
+    if (!match) throw new Error(`엔진 조각 파일명 규칙 위반: ${file} (예: 01-data.js)`);
+    return { file, number: Number(match[1]) };
+  }).sort((a, b) => a.number - b.number || a.file.localeCompare(b.file));
+
+  numbered.forEach((part, index) => {
+    const expected = index + 1;
+    if (part.number !== expected)
+      throw new Error(`엔진 조각 번호 누락/중복: ${part.file} (기대 번호 ${String(expected).padStart(2, "0")})`);
+  });
+  return numbered.map(part => part.file);
 }
 
 /** 조각을 순서대로 이어 붙인 엔진 원본 */
@@ -27,11 +38,24 @@ export function engineSource(root = ".") {
 export function compose(app, root = ".") {
   const engine = engineSource(root).replace(/^\/\*[\s\S]*?\*\/\n/, "");
   const appSrc = readFileSync(`${root}/src/apps/${app}/app.js`, "utf-8");
+  const engineSlots = [...engine.matchAll(SLOT_RE)].map(match => match[1]);
+  const appSlots = [...appSrc.matchAll(SLOT_RE)].map(match => match[1]);
+  const duplicate = ids => ids.find((id, index) => ids.indexOf(id) !== index);
+  const dupEngine = duplicate(engineSlots), dupApp = duplicate(appSlots);
+  if (dupEngine) throw new Error(`공통 엔진: SLOT ${dupEngine} 중복`);
+  if (dupApp) throw new Error(`${app}: SLOT ${dupApp} 중복`);
+
+  const expected = new Set(engineSlots), provided = new Set(appSlots);
+  const missing = engineSlots.filter(id => !provided.has(id));
+  const extra = appSlots.filter(id => !expected.has(id));
+  if (missing.length || extra.length) {
+    const detail = [missing.length && `누락 ${missing.join(",")}`, extra.length && `추가 ${extra.join(",")}`]
+      .filter(Boolean).join(" · ");
+    throw new Error(`${app}: SLOT 계약 불일치 (${detail})`);
+  }
+
   const slots = {};
-  const parts = appSrc.split(M); // [머리말, n1, body1, n2, body2 …]
+  const parts = appSrc.split(SLOT_RE); // [머리말, n1, body1, n2, body2 …]
   for (let i = 1; i < parts.length; i += 2) slots[parts[i]] = parts[i + 1];
-  return engine.replace(M, (_, n) => {
-    if (!(n in slots)) throw new Error(`${app}: SLOT ${n} 없음`);
-    return slots[n];
-  });
+  return engine.replace(SLOT_RE, (_, n) => slots[n]);
 }

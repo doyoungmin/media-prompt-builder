@@ -90,6 +90,19 @@ for (const app of ["image", "t2v", "i2v"]) {
   if (/되돌리기/.test(undo.textContent)) errs.push("되돌리기 버튼에 글자 레이블이 남음");
   if (!/^\d+\/\d+$/.test(undo.textContent.trim())) errs.push(`되돌리기 표기가 N/M 이 아님: "${undo.textContent.trim()}"`);
 
+  /* 실행 중 생성된 썸네일도 확인한다. app.js 안의 경로 오타는 HTML 정적 검사로 잡히지 않는다. */
+  const runtimeAssets = new Set();
+  for (const img of d.querySelectorAll("img")) {
+    const src = (img.getAttribute("src") || "").split("?")[0];
+    if (src.startsWith("/thumbs/")) runtimeAssets.add(src);
+    for (const candidate of (img.getAttribute("srcset") || "").split(",")) {
+      const url = candidate.trim().split(/\s+/)[0];
+      if (url?.startsWith("/thumbs/")) runtimeAssets.add(url.split("?")[0]);
+    }
+  }
+  for (const url of runtimeAssets)
+    if (!existsSync("public" + url)) errs.push(`동적 썸네일 없음: ${url}`);
+
   /* 엔트리가 가리키는 정적 자산이 실제로 있는지 — 파비콘·앱 아이콘·매니페스트는
      화면에 안 나오거나 탭에만 나와서, 파일명을 바꾸면 조용히 깨진 채 배포된다.
      /src/ 는 vite 가 빌드 때 해결하므로 뺀다. */

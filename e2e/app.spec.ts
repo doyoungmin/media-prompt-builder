@@ -1,4 +1,16 @@
-import { test, expect, Page } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+
+function watchRuntime(page: Page) {
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(`pageerror: ${error.message}`));
+  page.on("console", message => {
+    if (message.type() === "error") errors.push(`console: ${message.text()}`);
+  });
+  page.on("response", response => {
+    if (response.status() >= 400) errors.push(`http ${response.status()}: ${response.url()}`);
+  });
+  return errors;
+}
 
 const APPS = [
   { path: "/image/", name: "이미지 프롬프트 빌더", note: null },
@@ -10,8 +22,7 @@ const APPS = [
 test.describe("빌드 산출물이 브라우저에서 뜬다", () => {
   for (const app of APPS) {
     test(`${app.path} 부팅`, async ({ page }) => {
-      const errors: string[] = [];
-      page.on("pageerror", e => errors.push(e.message));
+      const errors = watchRuntime(page);
       await page.goto(app.path);
       await expect(page.locator("#appTitleText")).toHaveText(app.name);
       if (app.note) await expect(page.locator("#appTitleNote")).toHaveText(app.note);
@@ -23,14 +34,35 @@ test.describe("빌드 산출물이 브라우저에서 뜬다", () => {
   }
 });
 
-test("빌더 사이를 오갈 수 있다", async ({ page }) => {
+test.describe("각 앱 핵심 흐름", () => {
+  for (const app of APPS) {
+    test(`${app.path} 선택에서 프롬프트 생성`, async ({ page }) => {
+      const errors = watchRuntime(page);
+      await page.goto(app.path);
+      if (app.path === "/i2v/") await page.fill("#subject", "Her hair moves gently in the wind.");
+      await page.locator("[data-preset]").first().click();
+      await expect(page.locator("#prompt")).not.toHaveValue("");
+      await expect(page.locator("#copyBtn")).toBeEnabled();
+      expect(errors, "런타임·자산 오류").toEqual([]);
+    });
+  }
+});
+
+test("빌더 왕복 시 앱별 작업은 분리되고 복원된다", async ({ page }) => {
   await page.goto("/t2v/");
+  await page.fill("#subject", "a cat on a windowsill");
+  await page.locator("[data-preset]").first().click();
+  await page.waitForFunction(() =>
+    (localStorage.getItem("prompt-builder:t2v") || "").includes("windowsill"));
   await page.click("#builderBtn");
-  const link = page.locator("#builderMenu a.bm-item").first();
-  await expect(link).toBeVisible();
-  await link.click();
-  await expect(page.locator("#appTitleText")).toBeVisible();
-  expect(new URL(page.url()).pathname).not.toBe("/t2v/");
+  await page.locator('#builderMenu a[href="/image/"]').click();
+  await expect(page).toHaveURL(/\/image\/$/);
+  await expect(page.locator("#appTitleText")).toHaveText("이미지 프롬프트 빌더");
+  await expect(page.locator("#subject")).not.toHaveValue("a cat on a windowsill");
+  await page.click("#builderBtn");
+  await page.locator('#builderMenu a[href="/t2v/"]').click();
+  await expect(page).toHaveURL(/\/t2v\/$/);
+  await expect(page.locator("#subject")).toHaveValue("a cat on a windowsill");
 });
 
 test("프리셋을 고르면 프롬프트가 만들어진다", async ({ page }) => {

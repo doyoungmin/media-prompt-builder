@@ -9,10 +9,13 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  reporter: process.env.CI ? "list" : [["list"]],
+  reporter: process.env.CI
+    ? [["list"], ["html", { open: "never", outputFolder: "playwright-report" }]]
+    : "list",
   use: {
     baseURL: "http://127.0.0.1:4173",
     trace: "retain-on-failure",
+    screenshot: "only-on-failure",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
@@ -22,7 +25,8 @@ export default defineConfig({
        내 샌드박스에서는 localhost 가 IPv4 라 통과해서 CI 에서만 터졌다. */
     command: "npm run build && npx vite preview --port 4173 --strictPort --host 127.0.0.1",
     url: "http://127.0.0.1:4173/",
-    reuseExistingServer: !process.env.CI,
+    /* 오래된 4173 서버에 붙으면 다른 빌드를 검사할 수 있다. 매 실행마다 현재 산출물로 띄운다. */
+    reuseExistingServer: false,
     timeout: 120_000,
     // 서버가 못 뜨면 이유를 로그로 남긴다 — 지난번엔 타임아웃 문구만 나왔다
     stdout: "pipe",

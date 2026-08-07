@@ -30,6 +30,18 @@ for (const app of APPS) {
   const bad = (cond, msg) => { if (cond) errs.push(msg); };
   const w = load(app);
   const C = w.__cfg, DATA = w.__data, lookup = w.__lookup;
+  const requiredStrings = ["title", "sub", "subjectLabel", "subjectPlaceholder"];
+  for (const key of requiredStrings)
+    bad(typeof C?.[key] !== "string", `${key} 는 문자열이어야 함`);
+  for (const key of ["sections", "order", "wiz", "models"])
+    bad(!Array.isArray(C?.[key]), `${key} 는 배열이어야 함`);
+  bad(!C?.quick || typeof C.quick !== "object" || Array.isArray(C.quick), "quick 은 객체여야 함");
+  bad(typeof C?.build !== "function", "build 는 함수여야 함");
+  if (errs.length) {
+    console.log(`${app.padEnd(6)} ✗\n  ${errs.join("\n  ")}`);
+    fail = 1;
+    continue;
+  }
   const secIds = new Set(DATA.map(d => d.id));
   const itemNames = new Set(Object.keys(lookup));
 
