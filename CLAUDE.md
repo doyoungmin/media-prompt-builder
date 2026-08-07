@@ -5,9 +5,50 @@
 
 ```bash
 npm install
+npx playwright install --with-deps chromium webkit   # 최초 1회
 npm run dev          # http://localhost:5173
 npm run verify:all   # 배포 전 전체 검증 (E2E 포함)
 ```
+
+---
+
+## 0. 일하는 방식
+
+**브랜치는 `main` 하나뿐이고, push 하면 그대로 운영에 나간다.** 개인 저장소라 PR 없이
+`main` 에 바로 커밋한다(PR 을 열면 CI 는 똑같이 돈다). 그래서 push 는 "저장"이 아니라
+"배포"다 — 검증이 막아 주긴 하지만, 검증이 못 보는 것도 있다는 게 아래 2절의 내용이다.
+
+순서는 이렇다.
+
+1. 고친다
+2. `npm run verify:all` — **로컬에서 초록을 보고 나서** 커밋한다
+3. 커밋하고 push
+4. **CI 가 초록인지 확인한다.** 여기까지 안 보고 "완료"라고 하지 말 것 (2절 첫 항목)
+5. 운영 주소를 실제로 열어 본다
+
+CI 가 빨간불이면 실행 페이지 아래에 **`playwright-debug`** 아티팩트가 붙는다
+(`playwright-report/` + `test-results/`, 7일 보관). trace 와 실패 스크린샷이 그 안에 있다 —
+로그만 보고 짐작하지 말고 그걸 열어 볼 것.
+
+되돌려야 하면 Cloudflare 대시보드 → Worker → 배포 에서 이전 버전을 고른다.
+`deploy` job 이 커밋 SHA 앞 12자리를 버전 태그로 남기므로 목록에서 바로 찾을 수 있다.
+
+### 값을 지어내지 말 것
+
+이 저장소에서 난 가장 비싼 사고가 **실제로 존재하지 않는 CSS 중단점을 가정한 것**이었다
+(2절 마지막). 코드가 다른 파일의 값에 의존하면 — 중단점, 클래스 이름, 파일 크기, 키 이름 —
+**그 파일을 열어서 확인하고 나서 쓴다.** 그럴듯한 값은 정적 검사를 전부 통과하면서 틀린다.
+
+### 손대지 않아도 되는 것
+
+| 대상 | 왜 |
+|---|---|
+| `../as-is-HTML/` | 이관 전 원본. 저장소 밖이고 참고용이다 |
+| `public/thumbs/thumbs-map.json` | `extract-assets` 산출물이고 **런타임은 쓰지 않는다**. 여기 고쳐도 화면은 안 바뀐다 |
+| `scripts/extract-assets.mjs` | as-is HTML 에서 사진을 뽑던 일회성 스크립트 |
+| `dist/` `test-results/` `playwright-report/` | 산출물. gitignore 돼 있다 |
+
+라벨 → 사진 연결의 정본은 **`src/apps/*/app.js` 의 `GUIDE_IMG`** 하나뿐이다.
 
 ---
 
@@ -150,7 +191,12 @@ npm run test:e2e                # 폭별 실제 카드 대조
 | `test:e2e` | **실제 브라우저** — 크로미움 + 사파리. 레이아웃·번들 실행·사진 해상도·접근성 |
 | `verify:all` | 위 전부 + `npm audit` |
 
-E2E 는 처음 한 번 브라우저를 받아야 한다: `npx playwright install --with-deps chromium`
+E2E 는 처음 한 번 브라우저를 받아야 한다: `npx playwright install --with-deps chromium webkit`
+(**webkit 을 빼면** 사파리 테스트가 "Executable doesn't exist" 로 무더기로 죽는다. 앱 문제가 아니다.)
+
+`verify:all` 끝에 `npm audit --audit-level=moderate` 가 붙어 있다. 우리 코드와 무관한 권고
+하나로 전체가 막힐 수 있다. 그럴 때는 **막힌 채로 두지 말고** 올릴 수 있으면 올리고,
+못 올리면 왜 놔두는지 근거를 남긴 뒤 개별 명령으로 우회한다 — 조용히 임계값을 낮추지 말 것.
 
 **타입은 여기까지밖에 못 본다.** `app.js` 는 SLOT 으로 끼워 넣는 조각이라 그 자체로 모듈이
 아니다. 그래서 `src/app-config.d.ts` 는 모양만 적어 두고, 그 값이 *실재하는* 섹션·항목인지는
