@@ -130,6 +130,73 @@ for (const app of ["t2v", "i2v"]) {
   bad(app, /0-3s: /.test(out()), "초기화 후에도 구간 내용이 남아 있음");
 }
 
+/* ── 사람이 쓴 줄은 앞줄과 문구가 겹쳐도 지워지지 않는다 ──
+   dedupe 가 모든 줄을 훑던 시절, 피사체 한 줄에 쓴 표현을 구간 서술에서 또 쓰면
+   구간 쪽 그 부분이 통째로 사라졌다. 쓴 사람에게는 입력한 문장이 이유 없이 증발한 것으로 보인다.
+
+   겹침의 '방향'이 중요하다. 줄은 위에서 아래로 처리되므로 Camera·Style 은 구간 줄보다
+   뒤에 있고, 구간에 항목과 같은 문구를 써도 구간 쪽이 먼저 등록돼 살아남는다.
+   구간이 실제로 잘리는 건 그보다 위에 있는 '피사체 줄'과 겹칠 때뿐이다.
+   (이 방향을 뒤집어 놓고 검사를 짰다가, 고친 곳을 되돌려도 초록인 헛도는 검사를 만들었다.) */
+const ECHO = "neon reflections ripple across the wet pavement";
+for (const app of ["t2v", "i2v"]) {
+  const { d, click, fill, out } = boot(app);
+  click('[data-model="seedance"]');
+  fill("#subject", `${SUBJECT[app]}, ${ECHO}`);
+  click(d.querySelector("[data-preset]"));
+  fill('[data-sd-seg="0"]', `${ECHO}, and then she steps forward`);
+
+  const txt = out();
+  const segLine = txt.split("\n").find(l => /^0-3s: /.test(l));
+  console.log(`\n──────── ${app} · 피사체와 겹친 구간 서술`);
+  console.log(`  | ${txt.split("\n")[0]}\n  | ${segLine}`);
+
+  bad(app, !segLine, "구간 서술을 넣었는데 0-3s 줄이 사라짐");
+  bad(app, segLine && !segLine.toLowerCase().includes(ECHO),
+      `피사체와 겹친 문구가 구간 서술에서 지워짐 — "${ECHO}"`);
+  bad(app, segLine && !/and then she steps forward/.test(segLine),
+      "구간 서술의 나머지 부분이 지워짐");
+
+  /* 반대편도 확인 — 사람이 쓴 줄을 지키느라 항목 쪽 중복 제거까지 멈추면 안 된다.
+     피사체에 항목 문구를 그대로 넣으면 Camera·Style 에서는 빠져야 한다. */
+  const { d: d2, click: c2, fill: f2, out: o2 } = boot(app);
+  c2('[data-model="seedance"]');
+  f2("#subject", SUBJECT[app]);
+  c2(d2.querySelector("[data-preset]"));
+  const itemLine = o2().split("\n").find(l => /^(Camera|Style): /.test(l));
+  bad(app, !itemLine, "Camera/Style 줄이 없어 항목 중복 제거를 검사할 수 없음");
+  if (!itemLine) continue;
+  /* 검사할 문구를 여기 적어 두지 않고 엔진이 방금 내보낸 것을 되먹이는 이유 —
+     항목 문구가 바뀌면 적어 둔 값은 어디에도 안 걸리고 조용히 헛도는 검사가 된다. */
+  const phrase = itemLine.replace(/^(Camera|Style): /, "").split(", ")[0].toLowerCase();
+  f2("#subject", `${SUBJECT[app]}, ${phrase}`);
+  const parts = o2().toLowerCase().split(/[\n,.]/).map(s => s.trim());
+  const hits = parts.filter(p => p === phrase).length;
+  console.log(`  · 항목 중복 제거 — "${phrase}" ${hits}회`);
+  bad(app, hits !== 1, `항목 중복 제거가 멈춤 — "${phrase}" 가 ${hits}번 나옴`);
+}
+
+/* ── 피사체 꼬리 마침표 ──
+   키워드 나열형은 피사체를 쉼표로 이어 붙이므로 "…windowsill., golden hour…" 가 나갔다. */
+{
+  const MODELS = { image: ["generic", "natural"],
+                   t2v:   ["veo", "generic", "seedance"],
+                   i2v:   ["veo", "generic", "seedance"] };
+  for (const [app, models] of Object.entries(MODELS)) {
+    const { d, click, fill, out } = boot(app);
+    fill("#subject", "a cat leaps onto a windowsill.");
+    click(d.querySelector("[data-preset]"));
+    for (const m of models) {
+      click(`[data-model="${m}"]`);
+      const txt = out();
+      bad(`${app}/${m}`, /\.\s*,/.test(txt),
+          `피사체 꼬리 마침표가 쉼표 앞에 남음: "${txt.slice(0, 80)}…"`);
+      bad(`${app}/${m}`, /\.\./.test(txt), "마침표가 겹침");
+    }
+  }
+  console.log("\n──────── 피사체 꼬리 마침표 검사 완료");
+}
+
 /* ── 기존 모델 회귀 — 줄바꿈 보존 수정이 Veo·범용 출력을 바꾸면 안 된다 ── */
 {
   const { d, click, fill, out } = boot("t2v");

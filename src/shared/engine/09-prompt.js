@@ -43,7 +43,10 @@ function sdPrompt({head, camera, style, keep}){
   return lines.join("\n");
 }
 function plain(label,t){ const c=(t||"").trim().replace(/[.\s]+$/,""); return c?`${label}: ${c}.`:""; }
-const subjectText=()=>document.getElementById("subject").value.trim();
+/* 꼬리 마침표를 여기서 떼는 이유 — 키워드 나열형(범용)은 피사체를 쉼표로 이어 붙이므로
+   "a cat sits on a piano." 를 그대로 쓰면 "…piano., golden hour…" 가 나간다.
+   문장형(Veo·Seedance)은 plain() 과 dot() 이 필요한 자리에서 다시 붙인다. */
+const subjectText=()=>document.getElementById("subject").value.trim().replace(/[.\s]+$/,"");
 const currentModel=()=>CONFIG.models.find(m=>m.key===modelKey);
 
 function withGuard(txt){
@@ -56,9 +59,7 @@ function withGuard(txt){
    예: f/1.8 은 "shallow depth of field" 를 이미 포함하는데
        '얕은 심도 보케' 를 같이 고르면 그 문구가 두 번 나간다.
    중복은 모델이 그 개념에 과도한 가중치를 주게 만들고 프롬프트만 길어진다. */
-function dedupePhrases(txt){
-  if(!txt) return txt;
-  const seen=new Set();
+function dedupeSentences(txt, seen, drop){
   /* 문장을 가른 공백을 함께 담아 두고 그대로 되돌린다.
      예전처럼 join(" ") 로 합치면 Seedance 2.0 의 시간 구간 줄바꿈이 한 줄로 뭉개진다.
      한 칸 공백으로 이어지던 기존 모델(Veo·범용)의 출력은 그대로다. */
@@ -74,12 +75,28 @@ function dedupePhrases(txt){
     const kept=body.split(", ").filter(p=>{
       const k=p.trim().toLowerCase();
       if(!k) return false;
-      if(seen.has(k)) return false;
+      if(seen.has(k)) return drop ? false : true;   // 지키는 줄은 걸러내지 않고 등록만 한다
       seen.add(k); return true;
     });
     if(kept.length) out.push(label+kept.join(", ")+(period?".":""), sep);
   }
-  return out.join("").replace(/\s+$/,"");
+  return out.join("");
+}
+
+/* 사람이 직접 쓴 줄은 줄바꿈만이 아니라 '내용'도 지켜야 한다.
+   구간 서술("0-3s: …")이나 피사체 한 줄에 항목과 같은 문구를 쓰면 그 부분이 통째로
+   지워져, 쓴 사람 입장에서는 입력한 문장이 이유 없이 사라진 것으로 보였다.
+   중복 제거는 항목에서 조립된 Camera·Style 줄에만 걸면 충분하다. */
+const SD_ITEM_LINE=/^(Camera|Style): /;
+function dedupePhrases(txt){
+  if(!txt) return txt;
+  const seen=new Set();
+  /* 한 줄짜리 출력(Veo·범용)은 예전 경로 그대로 — 줄 단위 분기가 개입하지 않는다. */
+  if(!txt.includes("\n")) return dedupeSentences(txt, seen, true).replace(/\s+$/,"");
+  return txt.split("\n")
+    .map(line=>dedupeSentences(line, seen, SD_ITEM_LINE.test(line)))
+    .filter(line=>line!=="")
+    .join("\n").replace(/\s+$/,"");
 }
 
 function build(){ return withGuard(dedupePhrases(CONFIG.build(modelKey))); }
