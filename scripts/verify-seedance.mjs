@@ -1,4 +1,10 @@
-/* Seedance 2.0 출력 검수 — 실제 프롬프트 문자열을 뽑아 형식과 경계 상황을 확인한다.
+/* 프롬프트 조립 검수 — 실제 출력 문자열을 뽑아 형식과 경계 상황을 확인한다.
+
+   원래 Seedance 전용으로 시작했지만 검사할 것이 형식 전반으로 늘었다:
+   구간 줄·오디오·줄바꿈 보존에 더해 사람이 쓴 말이 dedupe 에 지워지지 않는지,
+   피사체 꼬리 마침표, 아무것도 안 썼을 때 빈 프롬프트인지까지 본다.
+   이름은 verify:seedance 그대로다 — CI 워크플로까지 함께 고쳐야 해서 나중으로 미뤘다.
+
    npm run verify:seedance */
 import { readFileSync } from "node:fs";
 import { JSDOM } from "jsdom";
@@ -24,10 +30,13 @@ function boot(app) {
   const html = readFileSync(`${app}/index.html`, "utf-8")
     .replace(/<script type="module"[^>]*><\/script>/g, "");
   const dom = new JSDOM(html, { url: `https://example.com/${app}/`, runScripts: "outside-only", pretendToBeVisual: true });
-  dom.window.eval(compose(app));
+  dom.window.eval(compose(app) + `
+    /* 검사에서 '진짜 항목 문구' 를 집으려면 켜져 있는 항목과 그 영어 문구가 필요하다.
+       출력 문자열에서 조각을 주워 쓰면 "animate this image" 같은 고정 문구까지 섞인다. */
+    window.__state = state; window.__lookup = lookup;`);
   const d = dom.window.document;
   return {
-    dom, d,
+    dom, d, win: dom.window,
     click: sel => { const el = typeof sel === "string" ? d.querySelector(sel) : sel;
       el.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true })); },
     fill: (sel, v) => { const el = d.querySelector(sel); el.value = v;
@@ -210,6 +219,45 @@ for (const app of ["t2v", "i2v"]) {
     }
   }
   console.log("\n──────── 피사체 꼬리 마침표 검사 완료");
+}
+
+/* ── 피사체에 쓴 말은 항목과 겹쳐도 지워지지 않는다 (한 줄 출력) ──
+   한 줄 출력은 라벨 블록을 순서대로 이어 붙이고 dedupe 는 앞에서부터 훑는다. 그래서
+   항목 블록이 피사체 블록보다 **앞에** 있으면, 피사체에 쓴 조각이 그 항목 문구와 정확히
+   같을 때 사용자가 쓴 쪽이 지워진다. t2v/veo 가 실제로 그랬다:
+     피사체 "a woman walks away, wide shot" + 와이드/풀샷 선택
+     → Subject and action: a woman walks away.   ("wide shot" 이 증발)
+
+   블록 순서는 앞으로도 바뀔 수 있고 그때 조용히 되살아나는 종류라, 앱·모델 전부를 본다.
+   되먹일 문구는 **켜져 있는 항목의 영어 문구**에서 집는다. 출력 문자열에서 조각을 주우면
+   "animate this image" 같은 build 가 박아 넣는 고정 문구까지 섞여, 그걸 피사체에 쓰면
+   지워지는 게 맞는데도 실패로 잡힌다(실제로 그렇게 한 번 헛짚었다). */
+for (const app of ["image", "t2v", "i2v"]) {
+  const { d, win, click, fill, out } = boot(app);
+  const SUBJ = "a woman walks away";
+  fill("#subject", SUBJ);
+  click(d.querySelector("[data-preset]"));
+  const models = [...d.querySelectorAll("[data-model]")].map(m => m.dataset.model);
+
+  // 지금 켜져 있는 항목들의 영어 문구 첫 조각 — dedupe 가 정확 일치로 보는 단위와 같다
+  const phrases = [...new Set(
+    Object.values(win.__state)
+      .flatMap(set => [...set])
+      .map(kr => win.__lookup[kr].en.split(", ")[0].replace(/[.\s]+$/, ""))
+      .filter(Boolean))];
+  console.log(`\n──────── ${app} · 피사체가 항목 문구와 겹칠 때 (항목 ${phrases.length}개 되먹임)`);
+  bad(app, phrases.length < 3, `되먹일 항목이 ${phrases.length}개뿐 — 검사가 헐거워진다`);
+
+  for (const m of models) {
+    click(`[data-model="${m}"]`);
+    const lost = [];
+    for (const phrase of phrases) {
+      fill("#subject", `${SUBJ}, ${phrase}`);
+      if (!out().toLowerCase().includes(`${SUBJ}, ${phrase}`.toLowerCase())) lost.push(phrase);
+    }
+    console.log(`  ${lost.length ? "✗  " : "OK "}[${m}]${lost.length ? ` 지워짐: ${lost.join(" · ")}` : ""}`);
+    bad(`${app}/${m}`, lost.length, `피사체에 쓴 항목 문구가 지워짐: ${lost.join(" · ")}`);
+  }
 }
 
 /* ── 기존 모델 회귀 — 줄바꿈 보존 수정이 Veo·범용 출력을 바꾸면 안 된다 ── */

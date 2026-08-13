@@ -271,9 +271,17 @@ const CONFIG = {
         items(id).forEach(it=>parts.push(itemText(it))));
       return parts.filter(Boolean).join(", ");
     }
+    /* 피사체를 맨 앞에 둔다. 두 가지가 같이 해결된다.
+       ① Veo 공식 권장 순서가 '주체 → 행동 → 장면 → 카메라 → 스타일' 이다.
+       ② dedupe 는 앞에서부터 훑으므로, 항목 블록이 피사체보다 앞에 있으면 피사체에 쓴
+          조각이 항목 문구와 정확히 같을 때 사용자가 쓴 쪽이 지워졌다.
+          예: 피사체 "a woman walks away, wide shot" + 와이드/풀샷 선택
+              → "Subject and action: a woman walks away." ("wide shot" 이 증발)
+          순서를 바꾸면 사용자가 쓴 것이 먼저 등록돼 항목 쪽 중복이 대신 빠진다.
+       이 순서에 기대고 있으므로 verify:seedance 가 앱·모델 전부에서 이걸 대조한다. */
     return [                        // veo
-      block("Cinematography", pick("shot","move")),
       plain("Subject and action", subj),
+      block("Cinematography", pick("shot","move")),
       block("Camera and lens", pick("body","lens")),
       block("Lighting and color", pick("light","film")),
       block("Technical finish", items("tech")),
