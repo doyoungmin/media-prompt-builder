@@ -33,7 +33,7 @@ const checkButton = (button, tag) => {
 checkButton(d.getElementById("copyBtn"), "본문");
 
 /* ── 네거티브 프롬프트 칸 ──
-   키워드형 모델에서만 나오고, 그때는 본문에 방지 문구가 없어야 한다.
+   Stable Diffusion 계열에서만 나오고, 그때는 본문에 방지 문구가 없어야 한다.
    둘 다 나가면 부정 표현을 본문에서 빼려던 이유가 사라진다. */
 const negBox = d.getElementById("negBox");
 const prompt = d.getElementById("prompt");
@@ -43,12 +43,12 @@ const pick = key => {
 if (!negBox) {
   errors.push("네거티브 칸이 만들어지지 않음");
 } else {
-  pick("natural");                       // 문장형 — 본문에 붙이는 모델
-  if (!negBox.hidden) errors.push("문장형인데 네거티브 칸이 보임");
-  if (!/without any text/.test(prompt.value)) errors.push("문장형인데 본문에 방지 문구가 없음");
+  pick("natural");                       // GPT Image — 본문에 붙이는 모델
+  if (!negBox.hidden) errors.push("GPT Image인데 네거티브 칸이 보임");
+  if (!/without any text/.test(prompt.value)) errors.push("GPT Image인데 본문에 방지 문구가 없음");
 
-  pick("generic");                       // 키워드형 — 네거티브 칸으로 내는 모델
-  if (negBox.hidden) errors.push("키워드형인데 네거티브 칸이 안 보임");
+  pick("generic");                       // Stable Diffusion — 네거티브 칸으로 내는 모델
+  if (negBox.hidden) errors.push("Stable Diffusion인데 네거티브 칸이 안 보임");
   if (!d.getElementById("negPrompt").value) errors.push("네거티브 칸이 비어 있음");
   if (/watermark/.test(prompt.value)) errors.push("네거티브로 뺐는데 본문에도 방지 문구가 남음");
   checkButton(d.getElementById("negCopyBtn"), "네거티브");

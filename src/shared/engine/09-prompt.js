@@ -20,11 +20,11 @@ function block(label,arr){ const t=listText(arr); return t?`${label}: ${t}.`:"";
 function cap(t){ const s=(t||"").trim(); return s ? s[0].toUpperCase()+s.slice(1) : ""; }
 const dot=t=>/[.!?]$/.test(t) ? t : t+".";
 
-/* ── Seedance 2.0 프롬프트 조립 ──
-   2.0 은 시간 구간을 줄 단위로 읽는다. 한 문단으로 뭉개면 '언제 무엇이 바뀌는가'가
+/* ── Seedance 프롬프트 조립 ──
+   시간 구간을 줄 단위로 읽는다. 한 문단으로 뭉개면 '언제 무엇이 바뀌는가'가
    사라지므로 여기서 만든 줄바꿈은 끝까지 살려야 한다(dedupePhrases 참고). */
 function sdSegments(){
-  return SD_TIMES[sd.count]
+  return sdTimes()
     .map((time,i)=>({time, text:(sd.segs[i]||"").trim()}))
     .filter(s=>s.text);
 }
@@ -34,7 +34,7 @@ function sdAudioLine(){
   const note=sd.note.trim();
   return "Audio: "+body+(note ? " "+dot(cap(note)) : "");
 }
-function sdPrompt({head, camera, motion, style, keep}){
+function sdPrompt({head, camera, motion, continuity, style, keep}){
   /* 사람이 쓴 내용이 하나도 없으면 프롬프트를 만들지 않는다.
      유지 지시와 가드만으로도 문자열이 비지 않아, 아무것도 입력하지 않은 상태에서
      복사 버튼이 살아 있었다 — 보일러플레이트만 든 '완성된 프롬프트' 가 복사돼 나간다. */
@@ -47,6 +47,7 @@ function sdPrompt({head, camera, motion, style, keep}){
   /* 카메라의 움직임과 '피사체가 얼마나 움직이는가' 는 다른 지시다. 한 줄에 몰면
      "다가가면서 거의 정지" 로 읽힌다 (MOVE_GROUPS 참고). */
   if(motion) lines.push(dot("Motion: "+motion));
+  if(continuity) lines.push(dot("Continuity: "+continuity));
   if(style)  lines.push(dot("Style: "+style));
   const audio=sdAudioLine();
   if(audio)  lines.push(audio);
@@ -82,7 +83,7 @@ function negativeText(){
    중복은 모델이 그 개념에 과도한 가중치를 주게 만들고 프롬프트만 길어진다. */
 function dedupeSentences(txt, seen, drop){
   /* 문장을 가른 공백을 함께 담아 두고 그대로 되돌린다.
-     예전처럼 join(" ") 로 합치면 Seedance 2.0 의 시간 구간 줄바꿈이 한 줄로 뭉개진다.
+     예전처럼 join(" ") 로 합치면 Seedance 계열의 시간 구간 줄바꿈이 한 줄로 뭉개진다.
      한 칸 공백으로 이어지던 기존 모델(Veo·범용)의 출력은 그대로다. */
   const parts=txt.split(/(?<=[.;])(\s+)/);
   const out=[];
@@ -108,7 +109,7 @@ function dedupeSentences(txt, seen, drop){
    구간 서술("0-3s: …")이나 피사체 한 줄에 항목과 같은 문구를 쓰면 그 부분이 통째로
    지워져, 쓴 사람 입장에서는 입력한 문장이 이유 없이 사라진 것으로 보였다.
    중복 제거는 항목에서 조립된 Camera·Style 줄에만 걸면 충분하다. */
-const SD_ITEM_LINE=/^(Camera|Style): /;
+const SD_ITEM_LINE=/^(Camera|Motion|Continuity|Style): /;
 function dedupePhrases(txt){
   if(!txt) return txt;
   const seen=new Set();

@@ -158,6 +158,26 @@ for (const w of WIDTHS) {
   });
 }
 
+/* 실제 모델명을 쓰면서 버튼이 길어졌다. 좁고 낮은 화면에서도 이름과 선택 안내가
+   잘리지 않아야 '무엇을 고를지'를 처음 보는 사람이 판단할 수 있다. */
+for (const app of [
+  { path: "/image/", labels: ["GPT Image", "Nano Banana", "Ideogram", "Stable Diffusion"] },
+  { path: "/t2v/", labels: ["Veo", "Seedance 2.5", "Seedance 2.0", "Kling · Pika"] },
+  { path: "/i2v/", labels: ["Veo", "Seedance 2.5", "Seedance 2.0", "Kling · Luma"] },
+]) {
+  test(`${app.path} 좁은 화면에서 생성 모델명이 모두 보인다`, async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 740 });
+    await page.goto(app.path);
+    await page.click(".mobile-out-bar");
+    await expect(page.locator("#modelBox .profile-label")).toHaveText("사용할 생성 모델");
+    await expect(page.locator("[data-model]")).toHaveText(app.labels);
+    await expect(page.locator("#modeHelp")).toBeVisible();
+    const overflow = await page.locator("#modelSwitch").evaluate(el =>
+      el.scrollWidth > el.clientWidth + 1);
+    expect(overflow, "생성 모델 버튼 가로 넘침").toBe(false);
+  });
+}
+
 test("동작 버튼이 결과 레일 바닥에 붙어 있다", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/t2v/");

@@ -202,7 +202,7 @@ npm run test:e2e                # 폭별 실제 카드 대조
 | `lint:css` | 단축 속성이 longhand 를 덮는지 · 주석 깨짐 |
 | `test:smoke` | 3개 앱이 jsdom 에서 뜨는지 · 레일 순서 · 참조 자산 존재 |
 | `verify:storage` `verify:copy` `verify:pwa` | 각 기능 회귀 (`verify:copy` 는 네거티브 칸도 본다) |
-| `verify:seedance` | 프롬프트 조립 — Seedance 형식 · 사람이 쓴 말 보존 · 꼬리 마침표 · 빈 입력 |
+| `verify:seedance` | 프롬프트 조립 — Seedance 버전별 시간 구간 · 범주 분리 · 사람이 쓴 말 보존 · 빈 입력 |
 | `verify:config` | 앱 설정이 실재하는 섹션·항목을 가리키는지 |
 | `verify:guide-assets` | 가이드 사진 사다리 계약 |
 | `verify:ops` | 배포 판정 로직 — stdout 없음·CI 진행 중/실패/재실행·인자 조립 |

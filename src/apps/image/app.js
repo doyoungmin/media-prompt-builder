@@ -193,27 +193,35 @@ const CONFIG = {
     }},
   ],
 
-  /* 대표 모델 표기 주의 — 나노바나나는 예전에 키워드형 쪽 예시로 적혀 있었는데,
-     구글 공식 프롬프트 가이드는 "키워드 나열로는 부족하며 장면을 서술형으로 묘사하라"를
-     첫 원칙으로 든다. 이 앱에서 그 형식을 내는 것은 문장형 쪽이라 예시를 옮겼다.
-     키워드 나열이 맞는 것은 CLIP 계열(SDXL 등)이다. */
+  /* 화면에는 내부 형식명이 아니라 사용자가 실제로 찾아갈 생성 모델명을 보여준다.
+     GPT Image·Nano Banana·Ideogram은 같은 구조화 서술을 공유하지만, 별도 키로 두면
+     선택 이유와 텍스트 방지 방식을 모델에 맞게 안내할 수 있다. 기존 natural/generic
+     키는 저장 작업 복원을 위해 그대로 유지한다. */
   models:[
-    {key:"generic", label:"범용 키워드형 (SDXL 등)", shortLabel:"키워드형",
-     help:"장면·구도·장비·조명·색감을 쉼표로 나열합니다. 문장 해석이 약한 모델에 적합합니다.",
+    {key:"natural", label:"GPT Image 2", shortLabel:"GPT Image",
+     help:"ChatGPT·OpenAI에서 이미지를 만들 때 선택하세요.",
+     guard:" Render the frame clean, without any text, watermarks or camera interface overlays.",
+     // 대표 프리셋 최대 실측 103/145단어에 피사체 입력 여유를 포함
+     limit:{short:130, detail:180}},
+    {key:"nano", label:"Nano Banana 2 · Pro", shortLabel:"Nano Banana",
+     help:"Gemini에서 이미지를 만들거나 편집할 때 선택하세요.",
+     guard:" Render the frame clean, without any text, watermarks or camera interface overlays.",
+     limit:{short:130, detail:180}},
+    {key:"ideogram", label:"Ideogram", shortLabel:"Ideogram",
+     help:"Ideogram에서 포스터·로고를 만들 때 선택하세요. 글자를 넣으려면 ‘텍스트 방지’를 끄세요.",
+     guard:" Render the frame clean, without any text, watermarks or camera interface overlays.",
+     limit:{short:130, detail:180}},
+    {key:"generic", label:"Stable Diffusion 3.5 · SDXL", shortLabel:"Stable Diffusion",
+     help:"Stable Diffusion·ComfyUI에서 이미지를 만들 때 선택하세요.",
      // 부정 표현은 본문에 넣지 않고 네거티브 칸으로 낸다 (09-prompt 의 negativeText 참고)
      negative:"text, watermark, camera UI overlay",
      // 대표 프리셋 최대 실측 90/132단어에 피사체 입력 여유를 포함한 권장 길이
      limit:{short:115, detail:170}},
-    {key:"natural", label:"문장형 (GPT Image · Ideogram · 나노바나나)", shortLabel:"문장형",
-     help:"자연스러운 영어 문장으로 서술합니다. 텍스트 이해력이 좋은 모델에 적합합니다.",
-     guard:" Render the frame clean, without any text, watermarks or camera interface overlays.",
-     // 대표 프리셋 최대 실측 103/145단어에 피사체 입력 여유를 포함
-     limit:{short:130, detail:180}},
   ],
 
   build(model){
     const subj=subjectText();
-    if(model==="natural"){
+    if(model==="natural" || model==="nano" || model==="ideogram"){
       return [
         plain("Scene", subj),
         block("Framing", items("shot")),

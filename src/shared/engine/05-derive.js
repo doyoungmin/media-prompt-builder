@@ -59,11 +59,12 @@ let lastApplied=null;   // 가이드가 방금 적용한 내용 (안내용)
 let activePreset=null, subjectEditSnapshot=null;
 let conflictNotice=null;   // 충돌로 방금 자동 해제된 항목 (안내용)
 
-/* ── Seedance 2.0 전용 입력 ──
-   Seedance 2.0 은 '시간이 지나며 무엇이 변하는가'와 오디오를 함께 받을 때 제 성능이 난다
-   (1.0/1.5 는 무음·단일 숏이라 이 입력이 의미가 없다). 그 값들은 피사체 한 줄에서
-   만들어낼 수 없으므로 별도 입력으로 받는다. seedance 모델일 때만 화면에 나온다. */
-const SD_TIMES={2:["0-3s","3-6s"], 3:["0-3s","3-6s","6-10s"]};
+/* ── Seedance 계열 전용 입력 ──
+   버전마다 지원 길이와 이야기 단위가 다르다. 시간 구간을 엔진에 고정하면 새 버전을
+   이름만 바꿔 달고 옛 형식을 내보내게 되므로, 각 모델의 CONFIG.seedance.timeline 을
+   정본으로 쓴다. seedance 프로필이 있는 모델에서만 전용 패널이 열린다. */
+const currentSdProfile=()=>CONFIG.models.find(m=>m.key===modelKey)?.seedance||null;
+const sdTimes=()=>currentSdProfile()?.timeline?.[sd.count]||[];
 /* 오디오는 고른 사람만 받는다 — 기본값 '무음'에서는 Audio 줄 자체를 내보내지 않는다.
    지시하지 않은 소리를 모델이 알아서 깔게 두는 편이 낫고, 프롬프트도 짧아진다. */
 const SD_AUDIO={
@@ -119,4 +120,3 @@ function pvOf(kr){
     default:      return "";
   }
 }
-
