@@ -77,6 +77,22 @@ CI 가 빨간불이면 실행 페이지 아래에 **`playwright-debug`** 아티�
 | `08-sync.js` | 동기화·Seedance 패널·저장·테마 (`STORE_V` 정본) |
 | `09-prompt.js` | 프롬프트 조립과 복사 |
 
+### 방지 문구를 어디에 낼 것인가
+
+모델마다 다르다. 문장 해석이 되는 모델(Veo · Seedance · 문장형)은 `guard` 로 **본문 끝에**
+붙이고, 키워드 나열형(SDXL · Kling · Pika)은 `negative` 로 **네거티브 칸에** 낸다 —
+이쪽은 본문의 "no text, watermark" 를 지시가 아니라 그릴 대상으로 읽어 오히려 그것을
+그린다. 둘을 함께 쓸 수 있다(i2v 범용: 긍정 지시는 `guard`, 뺄 것은 `negative`).
+칸은 `08-sync.js` 가 만들고 `negative` 를 쓰는 모델이 없는 앱에는 아예 안 생긴다.
+
+### 무빙 섹션은 라벨을 붙일 때 갈라야 한다
+
+무빙 한 섹션에 카메라의 움직임 · 움직임의 크기 · 속도감 · 장면 제어가 같이 있다.
+한 라벨 아래 몰면 `Camera motion: slow dolly push-in, subtle minimal motion, almost still`
+처럼 **다가가면서 정지해 있으라는 모순**이 된다. `05-derive.js` 의 `MOVE_GROUPS` 로 가르고,
+그룹 라벨이 바뀌면 `verify:config` 가 잡는다. **그룹에 `xg` 를 달아 가르면 안 된다** —
+`xg` 는 '이 묶음에서 하나만' 이라서 함께 골라야 하는 장면 제어 항목들이 서로를 밀어낸다.
+
 ---
 
 ## 2. 여기서 반복해서 사고가 났다
@@ -185,7 +201,7 @@ npm run test:e2e                # 폭별 실제 카드 대조
 | `typecheck` | 타입 |
 | `lint:css` | 단축 속성이 longhand 를 덮는지 · 주석 깨짐 |
 | `test:smoke` | 3개 앱이 jsdom 에서 뜨는지 · 레일 순서 · 참조 자산 존재 |
-| `verify:storage` `verify:copy` `verify:pwa` `verify:seedance` | 각 기능 회귀 |
+| `verify:storage` `verify:copy` `verify:pwa` `verify:seedance` | 각 기능 회귀 (`verify:copy` 는 네거티브 칸도 본다) |
 | `verify:config` | 앱 설정이 실재하는 섹션·항목을 가리키는지 |
 | `verify:guide-assets` | 가이드 사진 사다리 계약 |
 | `verify:ops` | 배포 판정 로직 — stdout 없음·CI 진행 중/실패/재실행·인자 조립 |

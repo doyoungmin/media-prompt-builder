@@ -25,7 +25,13 @@ interface ModelSpec {
    * 빈 값이면 '텍스트 방지' 토글이 비활성화되고 noGuardReason 이 툴팁이 된다.
    */
   guard?: string;
-  /** guard 가 없을 때 토글에 띄울 이유 */
+  /**
+   * 본문 대신 '네거티브 프롬프트' 칸으로 낼 방지 문구(쉼표로 나열).
+   * 키워드 나열형 모델은 본문의 부정 표현을 지시로 읽지 못하고 그 단어에 가중치를 준다.
+   * guard 와 함께 쓸 수 있다 — 긍정 지시는 guard 로, 빼고 싶은 것은 여기로.
+   */
+  negative?: string;
+  /** guard 도 negative 도 없을 때 토글에 띄울 이유 */
   noGuardReason?: string;
   /** 이 앱이 권장하는 길이(단어). 모델의 하드 제한이 아니다 */
   limit?: { short: number; detail: number };

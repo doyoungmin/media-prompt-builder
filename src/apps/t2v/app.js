@@ -243,7 +243,8 @@ const CONFIG = {
      limit:{short:140, detail:210}},
     {key:"generic", label:"범용 영상 (Kling · Pika 등)", shortLabel:"범용 영상",
      help:"키워드 나열형. 문장 해석이 약한 모델에 적합합니다.",
-     guard:", clean frame without text, watermark or camera UI overlay",
+     // Kling·Pika 는 네거티브 프롬프트 입력란이 따로 있다 — 본문에 부정문을 넣지 않는다
+     negative:"text, watermark, camera UI overlay",
      // Kling·Pika 는 입력란이 넉넉해 키워드 나열이 길어도 받는다
      limit:{short:110, detail:170}},
   ],

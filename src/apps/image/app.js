@@ -193,14 +193,18 @@ const CONFIG = {
     }},
   ],
 
+  /* 대표 모델 표기 주의 — 나노바나나는 예전에 키워드형 쪽 예시로 적혀 있었는데,
+     구글 공식 프롬프트 가이드는 "키워드 나열로는 부족하며 장면을 서술형으로 묘사하라"를
+     첫 원칙으로 든다. 이 앱에서 그 형식을 내는 것은 문장형 쪽이라 예시를 옮겼다.
+     키워드 나열이 맞는 것은 CLIP 계열(SDXL 등)이다. */
   models:[
-    {key:"generic", label:"범용 이미지 (나노바나나 등)", shortLabel:"범용 이미지",
-     help:"장면·구도·장비·조명·색감을 범용 키워드 순서로 나열합니다.",
-     guard:", clean frame without text, watermark or camera UI overlay",
-     // 나노바나나·Imagen 계열은 CLIP 77토큰 제약이 없어 긴 프롬프트를 소화한다
+    {key:"generic", label:"범용 키워드형 (SDXL 등)", shortLabel:"키워드형",
+     help:"장면·구도·장비·조명·색감을 쉼표로 나열합니다. 문장 해석이 약한 모델에 적합합니다.",
+     // 부정 표현은 본문에 넣지 않고 네거티브 칸으로 낸다 (09-prompt 의 negativeText 참고)
+     negative:"text, watermark, camera UI overlay",
      // 대표 프리셋 최대 실측 90/132단어에 피사체 입력 여유를 포함한 권장 길이
      limit:{short:115, detail:170}},
-    {key:"natural", label:"문장형 (GPT Image · Ideogram 등)", shortLabel:"문장형",
+    {key:"natural", label:"문장형 (GPT Image · Ideogram · 나노바나나)", shortLabel:"문장형",
      help:"자연스러운 영어 문장으로 서술합니다. 텍스트 이해력이 좋은 모델에 적합합니다.",
      guard:" Render the frame clean, without any text, watermarks or camera interface overlays.",
      // 대표 프리셋 최대 실측 103/145단어에 피사체 입력 여유를 포함

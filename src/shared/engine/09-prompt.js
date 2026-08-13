@@ -9,6 +9,9 @@ function items(secId){
   return out;
 }
 const pick=(...ids)=>ids.flatMap(items);
+/* 한 섹션 안에서도 그룹에 따라 라벨을 갈라야 하는 곳이 있다 (MOVE_GROUPS 참고).
+   lookup 에 담아 둔 그룹 라벨로 거른다 — 화면에 보이는 묶음과 같은 기준이다. */
+const itemsIn=(secId,groups)=>items(secId).filter(it=>groups.includes(lookup[it.kr].grp));
 function itemText(it){ return outputLength==="detail" && it.ext ? `${it.en}, ${it.ext}` : it.en; }
 function listText(arr){ return arr.map(itemText).filter(Boolean).join(", "); }
 function block(label,arr){ const t=listText(arr); return t?`${label}: ${t}.`:""; }
@@ -31,11 +34,19 @@ function sdAudioLine(){
   const note=sd.note.trim();
   return "Audio: "+body+(note ? " "+dot(cap(note)) : "");
 }
-function sdPrompt({head, camera, style, keep}){
+function sdPrompt({head, camera, motion, style, keep}){
+  /* 사람이 쓴 내용이 하나도 없으면 프롬프트를 만들지 않는다.
+     유지 지시와 가드만으로도 문자열이 비지 않아, 아무것도 입력하지 않은 상태에서
+     복사 버튼이 살아 있었다 — 보일러플레이트만 든 '완성된 프롬프트' 가 복사돼 나간다. */
+  const segs=sdSegments();
+  if(!head && !segs.length) return "";
   const lines=[];
   if(head)   lines.push(dot(cap(head)));
-  sdSegments().forEach(s=>lines.push(`${s.time}: ${dot(cap(s.text))}`));
+  segs.forEach(s=>lines.push(`${s.time}: ${dot(cap(s.text))}`));
   if(camera) lines.push(dot("Camera: "+camera));
+  /* 카메라의 움직임과 '피사체가 얼마나 움직이는가' 는 다른 지시다. 한 줄에 몰면
+     "다가가면서 거의 정지" 로 읽힌다 (MOVE_GROUPS 참고). */
+  if(motion) lines.push(dot("Motion: "+motion));
   if(style)  lines.push(dot("Style: "+style));
   const audio=sdAudioLine();
   if(audio)  lines.push(audio);
@@ -53,6 +64,16 @@ function withGuard(txt){
   const g=currentModel().guard;
   if(!guardOn || !txt || !g) return txt;
   return txt+g;
+}
+
+/* ── 네거티브 프롬프트 ──
+   키워드 나열형 모델(SDXL · Kling · Pika 계열)은 본문에 "no text, watermark" 를 넣으면
+   그 단어 자체가 토큰으로 들어가 오히려 그것을 그리는 쪽으로 가중된다. 이 모델들은
+   네거티브 프롬프트 입력란이 따로 있으므로, 본문에 붙이는 대신 그쪽에 넣도록 따로 낸다.
+   문장 해석이 되는 모델(Veo · Seedance · 문장형)은 부정문을 지시로 처리하므로 그대로 둔다. */
+function negativeText(){
+  const m=currentModel();
+  return guardOn && m.negative ? m.negative : "";
 }
 
 /* 같은 문구가 두 번 들어가는 것을 막는다.
@@ -119,19 +140,23 @@ document.addEventListener("keydown",e=>{
   }
 });
 
-function copyIt(){
-  const t=document.getElementById("prompt").value; if(!t) return;
-  const btn=document.getElementById("copyBtn");
+/* 복사할 칸이 둘이 됐다(본문 · 네거티브). 되돌림 문구와 대체 경로가 같으므로
+   버튼 구조는 그대로 두고 대상만 인자로 받는다 — verify:copy 가 보는 #copyBtn 의
+   아이콘·레이블 구조는 건드리지 않는다. */
+function copyText(srcEl, btn){
+  const t=srcEl.value; if(!t) return;
   const label=btn.querySelector(".copy-tx");
   const done=()=>{ label.textContent="복사됨 ✓"; btn.classList.add("done");
     setTimeout(()=>{label.textContent="복사"; btn.classList.remove("done");},1400); };
-  const fb=()=>{ const ta=document.getElementById("prompt");
-    ta.removeAttribute("readonly"); ta.select();
+  const fb=()=>{ srcEl.removeAttribute("readonly"); srcEl.select();
     try{ document.execCommand("copy"); done(); }catch(e){}
-    ta.setAttribute("readonly",""); window.getSelection().removeAllRanges(); };
+    srcEl.setAttribute("readonly",""); window.getSelection().removeAllRanges(); };
   if(navigator.clipboard && window.isSecureContext)
     navigator.clipboard.writeText(t).then(done).catch(fb);
   else fb();
+}
+function copyIt(){
+  copyText(document.getElementById("prompt"), document.getElementById("copyBtn"));
 }
 
 restoreState();

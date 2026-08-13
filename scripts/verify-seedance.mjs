@@ -176,6 +176,21 @@ for (const app of ["t2v", "i2v"]) {
   bad(app, hits !== 1, `항목 중복 제거가 멈춤 — "${phrase}" 가 ${hits}번 나옴`);
 }
 
+/* ── 사용자가 쓴 것이 하나도 없을 때 ──
+   유지 지시와 가드는 사용자가 쓴 내용이 아니다. 그것만으로 문자열이 차면 복사 버튼이
+   살아나서, 아무것도 입력하지 않은 사람이 보일러플레이트만 든 '완성된 프롬프트'를
+   복사해 간다. 항목만 고른 상태가 정확히 그 상황이다. */
+for (const app of ["t2v", "i2v"]) {
+  const { d, click, out } = boot(app);
+  click('[data-model="seedance"]');
+  click(d.querySelector("[data-preset]"));      // 항목만 고르고 글은 한 자도 안 씀
+  const txt = out();
+  console.log(`\n──────── ${app} · 항목만 선택 (피사체·구간 미입력)`);
+  console.log(`  | ${txt ? txt.split("\n")[0] : "(빈 프롬프트 — 의도한 결과)"}`);
+  bad(app, !!txt, `사용자 입력이 없는데 프롬프트가 만들어짐: "${txt.slice(0, 60)}…"`);
+  bad(app, !d.getElementById("copyBtn").disabled, "빈 프롬프트인데 복사 버튼이 활성");
+}
+
 /* ── 피사체 꼬리 마침표 ──
    키워드 나열형은 피사체를 쉼표로 이어 붙이므로 "…windowsill., golden hour…" 가 나갔다. */
 {

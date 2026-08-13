@@ -167,6 +167,12 @@
   .sd-seg input:focus,.sd-note:focus{outline:none;border-color:var(--acc2)}
   .sd-note[hidden]{display:none}
 
+  /* 네거티브 프롬프트 — 키워드형 모델에서만 나온다. Seedance 패널의 칸 모양을 그대로 쓰고
+     복사 버튼만 옆에 붙인다. readonly 라도 색은 본문과 같게 둔다 — 흐리면 못 읽는다. */
+  .neg-box[hidden]{display:none}
+  .neg-box #negPrompt{cursor:text}
+  .neg-box .act{flex:0 0 auto;min-height:34px}
+
   /* 선택 방법 탭 — 헤더 우측의 분절 컨트롤.
      헤더 한 줄에 들어가야 하므로 보조 설명(small)은 감추고 title 로 넘긴다.
      밑줄 방식은 세로 정렬이 어긋나 보여, 한 덩이로 묶고 현재 항목만 면을 준다. */

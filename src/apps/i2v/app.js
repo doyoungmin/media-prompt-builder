@@ -180,7 +180,10 @@ const CONFIG = {
      limit:{short:110, detail:175}},
     {key:"generic", label:"범용 (Kling · Luma · Pika 등)", shortLabel:"범용",
      help:"짧은 키워드 나열형. 문장 해석이 약한 모델에 적합합니다.",
-     guard:", keep the reference image style, clean frame without text or watermark",
+     /* 긍정 지시(원본 스타일 유지)는 본문에 남기고, 빼고 싶은 것만 네거티브 칸으로 낸다.
+        예전에는 둘이 한 문자열에 붙어 있어 부정 표현까지 본문으로 나갔다. */
+     guard:", keep the reference image style",
+     negative:"text, watermark",
      limit:{short:70, detail:130}},
   ],
 
@@ -190,14 +193,25 @@ const CONFIG = {
     /* T2V 와 같은 2.0 형식(t2v/app.js 주석 참고).
        I2V 에서는 첫 프레임이 곧 참조 이미지이므로 그 사실과 '어디까지 유지할지'를 못박는다.
        유지 수준은 사용자가 고른다 — 엄격히 묶으면 안전하지만 움직임이 죽는다. */
+    /* 무빙 섹션은 카메라의 움직임 · 움직임의 크기 · 속도감 · 장면 제어가 한데 있다.
+       라벨을 붙여 낼 때는 갈라야 한다 — 05-derive 의 MOVE_GROUPS 주석 참고. */
+    const G=MOVE_GROUPS;
+    const cameraMove=itemsIn("move",G.camera);
+    const motionAmount=itemsIn("move",G.amount);
+    const continuity=itemsIn("move",G.scene);
+    const rendering=[...itemsIn("move",G.time), ...items("tech")];
     if(model==="seedance"){
       const preserve = sd.preserve==="strict"
         ? "Keep the subject identity, outfit, composition, lighting and visual style unchanged from the reference image."
         : "Keep the subject clearly recognisable from the reference image; natural variation in pose and lighting is fine.";
       return sdPrompt({
         head: "Animate the reference image as the first frame. "+dot(cap(motion)),
-        camera: listText(pick("move","shot")),
-        style: listText(items("tech")),
+        camera: listText([...cameraMove, ...items("shot")]),
+        /* Seedance 는 줄 단위 지시라 라벨을 더 쪼개면 줄만 늘어난다. 'Motion' 아래에
+           크기와 장면 제어를 함께 두어도 카메라를 가리키지 않으므로 모순이 없다.
+           (Veo 는 한 문단이라 라벨이 싸다 — 그쪽만 Continuity 를 따로 뗀다.) */
+        motion: listText([...motionAmount, ...continuity]),
+        style: listText(rendering),
         keep: preserve+" One continuous shot, no new people, objects or scene changes."
           +(outputLength==="detail"
             ? " Keep the motion subtle and physically plausible throughout." : ""),
@@ -212,9 +226,14 @@ const CONFIG = {
       return [
         "Animate the reference image.",
         plain("Motion", motion),
-        block("Camera motion", items("move")),
+        block("Camera motion", cameraMove),
+        /* 예전에는 이 셋이 전부 'Camera motion' 아래에 있었다. 그래서
+           "Camera motion: slow dolly push-in, subtle minimal motion, almost still" —
+           카메라가 다가가면서 거의 정지해 있으라는 모순으로 읽혔다. */
+        block("Motion amount", motionAmount),
+        block("Continuity", continuity),
         block("Keep the framing", items("shot")),
-        block("Motion rendering", items("tech")),
+        block("Motion rendering", rendering),
         outputLength==="detail"
           ? "Keep the motion physically plausible and continuous from the first frame." : "",
       ].filter(Boolean).join(" ");

@@ -38,12 +38,13 @@ for (const app of ["image", "t2v", "i2v"]) {
     thumbRefs: [...d.querySelectorAll("img")].filter(i => (i.getAttribute("src")||"").startsWith("/thumbs/")).length,
   };
   /* 우측 레일 순서 — 대상 모델 → 입력 → Seedance → 출력 범위 → 현재 선택
-     → 프롬프트 → 동작 버튼. 마크업이 3벌이라 하나만 어긋나기 쉬워 여기서 잠근다.
-     (Seedance 패널은 CONFIG.sd 가 있는 영상 앱에만 있다) */
+     → 프롬프트 → 네거티브 → 동작 버튼. 마크업이 3벌이라 하나만 어긋나기 쉬워 여기서 잠근다.
+     (Seedance 패널은 CONFIG.sd 가 있는 영상 앱에만 있다. 네거티브 칸은 negative 를 쓰는
+      모델이 있는 앱에만 있고, 지금은 세 앱 모두 키워드형 모델이 있어 전부 생긴다.) */
   const order = [...d.getElementById("outPanel").children]
     .map(el => el.id || el.className.split(" ")[0]);
   const want = ["modelBox", "subject-box", ...(app === "image" ? [] : ["sdBox"]),
-                "scope", "selSumBox", "out-top", "prompt", "outActions"];
+                "scope", "selSumBox", "out-top", "prompt", "negBox", "outActions"];
   if (order.join(",") !== want.join(",")) {
     errs.push(`레일 순서가 다름: ${order.join(" > ")}`);
   }

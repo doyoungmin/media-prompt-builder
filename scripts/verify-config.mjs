@@ -21,7 +21,8 @@ function load(app) {
     runScripts: "outside-only", pretendToBeVisual: true });
   dom.window.eval(compose(app) + `
     window.__cfg = CONFIG; window.__data = DATA; window.__order = ORDER;
-    window.__wiz = WIZ; window.__presets = PRESETS; window.__lookup = lookup;`);
+    window.__wiz = WIZ; window.__presets = PRESETS; window.__lookup = lookup;
+    window.__moveGroups = MOVE_GROUPS;`);
   return dom.window;
 }
 
@@ -68,8 +69,27 @@ for (const app of APPS) {
     bad(!m.key || !m.label || !m.help, `모델 '${m.key}' 에 key/label/help 중 빠진 것이 있음`);
     if (m.limit) bad(!(m.limit.short < m.limit.detail),
       `모델 '${m.key}' 의 limit 이 간결<상세 가 아님 (${m.limit.short}/${m.limit.detail})`);
-    if (!m.guard) bad(!m.noGuardReason,
-      `모델 '${m.key}' 는 guard 가 없는데 noGuardReason 도 없음 — 토글이 이유 없이 비활성된다`);
+    if (!m.guard && !m.negative) bad(!m.noGuardReason,
+      `모델 '${m.key}' 는 guard 도 negative 도 없는데 noGuardReason 도 없음 — 토글이 이유 없이 비활성된다`);
+    /* 네거티브 칸은 모델의 별도 입력란에 그대로 붙여 넣는 값이다. 문장이 섞이면
+       거기에 넣을 수 없다 — 쉼표로 나열된 키워드여야 한다. */
+    if (m.negative) {
+      bad(/[.!?]/.test(m.negative), `모델 '${m.key}' 의 negative 에 문장 부호가 있음: ${m.negative}`);
+      bad(!m.negative.trim(), `모델 '${m.key}' 의 negative 가 비었음`);
+    }
+  }
+
+  /* ── 무빙 그룹 라벨 ──
+     MOVE_GROUPS 는 01-data 의 그룹 라벨을 문자열로 가리킨다. 라벨이 바뀌면 그 그룹은
+     어느 버킷에도 안 담기고 프롬프트에서 조용히 사라진다 — 정적 검사로는 안 잡힌다. */
+  if (C.sections.includes("move")) {
+    const moveSec = DATA.find(d => d.id === "move");
+    const real = new Set(moveSec.groups.map(g => g.label));
+    const listed = Object.values(w.__moveGroups).flat();
+    for (const label of listed)
+      bad(!real.has(label), `MOVE_GROUPS 가 없는 그룹을 가리킴: '${label}'`);
+    for (const label of real)
+      bad(!listed.includes(label), `무빙 그룹 '${label}' 이 MOVE_GROUPS 어디에도 없음 — 프롬프트에서 빠진다`);
   }
 
   // ── 가이드 ──

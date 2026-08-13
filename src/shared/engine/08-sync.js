@@ -101,6 +101,26 @@ function redrawSd(){
   SD_BOX.querySelector("#sdNote").value=sd.note;
 }
 const PROMPT_EL=document.getElementById("prompt");
+/* ── 네거티브 프롬프트 칸 ──
+   Seedance 패널과 같은 이유로 여기서 한 번만 만든다 (엔트리 HTML 3벌 복사 방지).
+   negative 를 쓰는 모델이 하나도 없는 앱에서는 아예 만들지 않는다.
+   본문 아래·동작 버튼 위에 둔다 — 복사하고 나서 눈에 들어와야 하는 순서다. */
+const NEG_BOX=CONFIG.models.some(m=>m.negative) ? buildNegPanel() : null;
+function buildNegPanel(){
+  const box=document.createElement("div");
+  box.className="sd-box neg-box"; box.id="negBox"; box.hidden=true;
+  box.innerHTML=
+     `<span class="profile-label">네거티브 프롬프트 — 모델의 네거티브 입력란에 따로 넣으세요</span>`
+    +`<div class="sd-seg">`
+    +`<input class="sd-note" id="negPrompt" readonly aria-label="네거티브 프롬프트">`
+    +`<button class="act copy neg-copy" id="negCopyBtn" title="네거티브 프롬프트를 클립보드로 복사"`
+    +`><svg class="ic" aria-hidden="true"><use href="#i-copy"/></svg><span class="copy-tx">복사</span></button>`
+    +`</div>`;
+  PROMPT_EL.insertAdjacentElement("afterend",box);
+  box.querySelector("#negCopyBtn").addEventListener("click",()=>
+    copyText(box.querySelector("#negPrompt"), box.querySelector("#negCopyBtn")));
+  return box;
+}
 const SUBJECT_NOTE=document.getElementById("subjectNote");
 /* 결과 제목 옆 안내 — OUT_LAB 을 매번 다시 그리므로 노드를 만들어 들고 다닌다 */
 const OUT_NOTE=document.createElement("span");
@@ -211,14 +231,19 @@ function syncOutput(){
     +" 간결은 장비의 시각효과 설명을 생략하며, 선택한 항목 자체는 모두 포함합니다.";
   const summary=`${model.label} · ${outputLength==="short"?"간결":"상세"}`;
 
-  // '텍스트 방지' — 부정형을 지원하지 않는 모델에서는 비활성화한다
+  /* '텍스트 방지' — 방지 문구를 어디에 낼지는 모델마다 다르다.
+     본문에 붙이는 모델(guard)과 네거티브 칸으로 빼는 모델(negative)이 있고,
+     둘 다 없는 모델에서만 토글을 비활성화한다. */
   const gb=document.getElementById("guardBtn");
-  const noGuard=!model.guard;
+  const neg=negativeText();
+  const noGuard=!model.guard && !model.negative;
   gb.disabled=noGuard;
   gb.classList.toggle("on", guardOn && !noGuard);
   gb.setAttribute("aria-pressed", guardOn && !noGuard);
   gb.title = noGuard ? model.noGuardReason
-    : "프롬프트 끝에 텍스트·워터마크·카메라 UI가 화면에 그려지는 것을 막는 문구를 추가합니다";
+    : model.negative
+      ? "텍스트·워터마크 방지 문구를 아래 '네거티브 프롬프트' 칸으로 냅니다 — 이 모델은 본문에 부정문을 넣으면 그 단어를 오히려 그립니다"
+      : "프롬프트 끝에 텍스트·워터마크·카메라 UI가 화면에 그려지는 것을 막는 문구를 추가합니다";
 
   /* ── 안내 ──
      한곳에 모아 띄우던 팝업을 없애고, 고칠 곳 옆에 붙인다.
@@ -290,6 +315,12 @@ function syncOutput(){
     : PROMPT_HINT;
   SUBJECT_BOX.classList.toggle("need",!!blocked);
   document.getElementById("copyBtn").disabled = !txt;   // 빈 상태에서는 복사 비활성
+  /* 네거티브 칸은 본문이 있을 때만 낸다 — 본문이 비었는데 방지 문구만 떠 있으면
+     아직 아무것도 안 만들어졌다는 사실이 가려진다. */
+  if(NEG_BOX){
+    NEG_BOX.hidden = !neg || !txt;
+    NEG_BOX.querySelector("#negPrompt").value = neg;
+  }
   const words=wordCount(txt);
   // limit은 모델의 하드 제한이 아니라 이 앱의 권장 길이 기준이다.
   const lim=model.limit || {short:80, detail:150};
