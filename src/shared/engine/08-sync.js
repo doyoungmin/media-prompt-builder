@@ -27,7 +27,7 @@ function buildSdPanel(){
     +opts.map(([v,t])=>`<button data-sd-${name}="${v}">${t}</button>`).join("")
     +`</div>`;
   box.innerHTML=
-     seg("연속숏 시간구간","count",[["2","2구간 · 6초"],["3","3구간 · 10초"]])
+     seg("시간구간","count",[["2","2구간"],["3","3구간"]])
     +`<div class="sd-segs" id="sdSegs"></div>`
     +seg("오디오","audio",[["none","무음"],["ambient","환경음"],["dialogue","환경음+대사"]])
     +`<input class="sd-note" id="sdNote" aria-label="효과음·대사 메모"
@@ -40,12 +40,13 @@ function buildSdPanel(){
   // 구간 입력칸은 개수가 바뀌므로 따로 그린다
   const segsEl=box.querySelector("#sdSegs");
   const drawSegs=()=>{
-    segsEl.innerHTML=SD_TIMES[sd.count].map((t,i)=>
+    const times=sdTimes();
+    segsEl.innerHTML=times.map((t,i)=>
       `<label class="sd-seg"><span class="sd-time">${t}</span>`
       +`<input data-sd-seg="${i}" aria-label="${t} 구간 내용"`
       +` placeholder="${(CONFIG.sd.segHints||[])[i]||"이 구간에서 무엇이 일어나나요?"}"></label>`
     ).join("");
-    SD_TIMES[sd.count].forEach((_,i)=>{
+    times.forEach((_,i)=>{
       segsEl.querySelector(`[data-sd-seg="${i}"]`).value=sd.segs[i]||"";
     });
   };
@@ -86,7 +87,22 @@ function buildSdPanel(){
 /* 패널의 버튼 눌림 상태와 표시 여부를 현재 모델에 맞춘다 */
 function syncSdUI(){
   if(!SD_BOX) return;
-  SD_BOX.hidden = modelKey!=="seedance";
+  const profile=currentSdProfile();
+  SD_BOX.hidden = !profile;
+  if(!profile) return;
+  /* 버전을 바꾸면 같은 구간 내용은 유지하되 타임코드·제목은 새 프로필로 다시 그린다. */
+  if(SD_BOX.dataset.model!==modelKey){
+    SD_BOX.dataset.model=modelKey;
+    redrawSd();
+  }
+  const label=SD_BOX.querySelector(".profile-label");
+  label.textContent=profile.panelLabel;
+  SD_BOX.querySelectorAll("[data-sd-count]").forEach(b=>{
+    const count=+b.dataset.sdCount;
+    const times=profile.timeline[count]||[];
+    const end=((times.at(-1)||"").match(/-(\d+)s$/)||[])[1];
+    b.textContent=`${count}구간${end?` · ${end}초`:""}`;
+  });
   const mark=(name,val)=>SD_BOX.querySelectorAll(`[data-sd-${name}]`).forEach(b=>{
     const on=b.dataset[`sd${name[0].toUpperCase()+name.slice(1)}`]===String(val);
     b.classList.toggle("on",on); b.setAttribute("aria-pressed",on);
@@ -453,7 +469,7 @@ function restoreState(){
   /* 저장된 값이 지금의 선택지에 없을 수 있다(구간 수·오디오 종류가 바뀐 경우) */
   if(isRecord(saved.sd)){
     const v=saved.sd;
-    if(SD_TIMES[v.count]) sd.count=v.count;
+    if(v.count===2 || v.count===3) sd.count=v.count;
     if(Array.isArray(v.segs)) sd.segs=[0,1,2].map(i=>typeof v.segs[i]==="string" ? v.segs[i] : "");
     if(typeof v.audio==="string" && Object.prototype.hasOwnProperty.call(SD_AUDIO,v.audio)) sd.audio=v.audio;
     if(v.preserve==="strict"||v.preserve==="natural") sd.preserve=v.preserve;
@@ -463,4 +479,3 @@ function restoreState(){
   setSelSumOpen(saved.selOpen===true);
   syncLevelUI(); syncWizUI(); syncPresetUI();
 }
-

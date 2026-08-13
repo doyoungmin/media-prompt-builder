@@ -173,9 +173,21 @@ const CONFIG = {
      help:"움직임과 연속성 유지 지시를 구조화된 문장으로 조합합니다.",
      guard:" Keep the subject, composition and lighting consistent with the reference image. Render the frame clean, without any text or watermarks.",
      limit:{short:110, detail:190}},
-    {key:"seedance", label:"Seedance 2.0", shortLabel:"Seedance",
+    {key:"seedance25", label:"Seedance 2.5", shortLabel:"Seedance 2.5",
+     help:"참조 이미지를 첫 프레임으로 두고 최대 30초의 변화와 오디오를 시간 구간별로 지시합니다.",
+     guard:" No on-screen text, watermark or camera UI overlay.",
+     seedance:{
+       panelLabel:"스토리 시간구간",
+       timeline:{2:["0-10s","10-20s"], 3:["0-10s","10-20s","20-30s"]},
+     },
+     limit:{short:220, detail:300}},
+    {key:"seedance", label:"Seedance 2.0", shortLabel:"Seedance 2.0",
      help:"참조 이미지를 첫 프레임으로 두고, 시간 구간별 움직임과 오디오를 지시합니다.",
      guard:" No on-screen text, watermark or camera UI overlay.",
+     seedance:{
+       panelLabel:"연속숏 시간구간",
+       timeline:{2:["0-3s","3-6s"], 3:["0-3s","3-6s","6-10s"]},
+     },
      // 장면 묘사를 이미지가 대신하므로 T2V 보다 짧다
      limit:{short:110, detail:175}},
     {key:"generic", label:"범용 (Kling · Luma · Pika 등)", shortLabel:"범용",
@@ -189,8 +201,7 @@ const CONFIG = {
 
   build(model){
     const motion=subjectText();
-    if(!motion) return "";        // 움직임 설명이 없으면 프롬프트를 만들지 않는다
-    /* T2V 와 같은 2.0 형식(t2v/app.js 주석 참고).
+    /* T2V 와 같은 Seedance 형식(t2v/app.js 주석 참고).
        I2V 에서는 첫 프레임이 곧 참조 이미지이므로 그 사실과 '어디까지 유지할지'를 못박는다.
        유지 수준은 사용자가 고른다 — 엄격히 묶으면 안전하지만 움직임이 죽는다. */
     /* 무빙 섹션은 카메라의 움직임 · 움직임의 크기 · 속도감 · 장면 제어가 한데 있다.
@@ -200,23 +211,27 @@ const CONFIG = {
     const motionAmount=itemsIn("move",G.amount);
     const continuity=itemsIn("move",G.scene);
     const rendering=[...itemsIn("move",G.time), ...items("tech")];
-    if(model==="seedance"){
+    if(model==="seedance" || model==="seedance25"){
+      /* 구간만 채운 사람도 유효한 입력을 한 것이다. 반대로 설명·구간이 모두 비면
+         유지 문구만 든 프롬프트를 만들지 않는다. */
+      if(!motion && !sdSegments().length) return "";
       const preserve = sd.preserve==="strict"
         ? "Keep the subject identity, outfit, composition, lighting and visual style unchanged from the reference image."
         : "Keep the subject clearly recognisable from the reference image; natural variation in pose and lighting is fine.";
       return sdPrompt({
-        head: "Animate the reference image as the first frame. "+dot(cap(motion)),
+        head: "Animate the reference image as the first frame."+(motion ? " "+dot(cap(motion)) : ""),
         camera: listText([...cameraMove, ...items("shot")]),
-        /* Seedance 는 줄 단위 지시라 라벨을 더 쪼개면 줄만 늘어난다. 'Motion' 아래에
-           크기와 장면 제어를 함께 두어도 카메라를 가리키지 않으므로 모순이 없다.
-           (Veo 는 한 문단이라 라벨이 싸다 — 그쪽만 Continuity 를 따로 뗀다.) */
-        motion: listText([...motionAmount, ...continuity]),
+        motion: listText(motionAmount),
+        continuity: listText(continuity),
         style: listText(rendering),
-        keep: preserve+" One continuous shot, no new people, objects or scene changes."
-          +(outputLength==="detail"
-            ? " Keep the motion subtle and physically plausible throughout." : ""),
+        keep: model==="seedance25"
+          ? preserve+" Keep continuity across all segments; do not introduce new people, objects or locations unless explicitly requested."
+            +(outputLength==="detail" ? " Keep the motion physically plausible and transitions coherent." : "")
+          : preserve+" One continuous shot, no new people, objects or scene changes."
+            +(outputLength==="detail" ? " Keep the motion subtle and physically plausible throughout." : ""),
       });
     }
+    if(!motion) return "";        // 다른 모델은 움직임 설명이 없으면 프롬프트를 만들지 않는다
     if(model==="generic"){
       const parts=["animate this image", motion];
       ["move","shot","tech"].forEach(id=>items(id).forEach(it=>parts.push(itemText(it))));

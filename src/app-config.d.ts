@@ -35,6 +35,13 @@ interface ModelSpec {
   noGuardReason?: string;
   /** 이 앱이 권장하는 길이(단어). 모델의 하드 제한이 아니다 */
   limit?: { short: number; detail: number };
+  /** Seedance 계열 모델만 갖는 시간 구간 프로필. 키가 없으면 전용 패널을 쓰지 않는다 */
+  seedance?: {
+    /** 전용 패널의 시간 구간 제목 */
+    panelLabel: string;
+    /** 2구간·3구간에서 실제 프롬프트에 붙일 타임코드 */
+    timeline: { 2: string[]; 3: string[] };
+  };
 }
 
 /** 가이드 탭의 질문 하나 */

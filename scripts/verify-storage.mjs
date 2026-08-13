@@ -25,6 +25,21 @@ function boot(saved) {
   return { dom, d: dom.window.document, error };
 }
 
+function bootVideo(app, saved) {
+  const videoHtml = readFileSync(`${app}/index.html`, "utf-8")
+    .replace(/<script type="module"[^>]*><\/script>/g, "");
+  const dom = new JSDOM(videoHtml, {
+    url: `https://example.com/${app}/`,
+    runScripts: "outside-only",
+    pretendToBeVisual: true,
+  });
+  dom.window.localStorage.setItem(`prompt-builder:${app}`, JSON.stringify(saved));
+  let error = null;
+  try { dom.window.eval(compose(app)); }
+  catch (e) { error = e; }
+  return { dom, d: dom.window.document, error };
+}
+
 /* v1 정상 데이터는 선택·입력을 유지한 채 현재 버전으로 다시 저장되어야 한다. */
 {
   const { dom, d, error } = boot({
@@ -69,6 +84,38 @@ for (const [name, saved] of [
   check(!error, `미지원 버전 처리 중 예외: ${error}`);
   check(d.getElementById("subject").value === "", "미지원 버전 데이터가 복원됨");
   dom.window.close();
+}
+
+/* Seedance 2.5를 추가해도 기존 2.0 저장 작업은 2.0 타임라인으로 복원돼야 한다.
+   모델 키를 재활용하면 사용자가 열기만 해도 결과 의미가 6초에서 20초로 바뀐다. */
+for (const app of ["t2v", "i2v"]) {
+  const base = {
+    v: 2, sel: {},
+    subject: app === "t2v" ? "a runner crosses the street" : "the subject turns toward camera",
+    model: "seedance", length: "short", level: "basic", scope: {}, guard: true,
+    wiz: {}, preset: null, selOpen: false,
+    sd: { count: 2, segs: ["the motion begins", "the motion settles", ""],
+      audio: "none", preserve: "strict", note: "" },
+  };
+  const { dom, d, error } = bootVideo(app, base);
+  const output = d.getElementById("prompt")?.value || "";
+  check(!error, `${app} Seedance 2.0 저장값 복원 중 예외: ${error}`);
+  check(d.querySelector('[data-model="seedance"]')?.classList.contains("on"),
+    `${app} 기존 seedance 키가 2.0으로 복원되지 않음`);
+  check(/^0-3s: /m.test(output) && /^3-6s: /m.test(output) && !/^0-10s: /m.test(output),
+    `${app} 기존 2.0 저장값의 타임라인이 바뀜`);
+  dom.window.close();
+
+  const newer = structuredClone(base);
+  newer.model = "seedance25";
+  const next = bootVideo(app, newer);
+  const nextOutput = next.d.getElementById("prompt")?.value || "";
+  check(!next.error, `${app} Seedance 2.5 저장값 복원 중 예외: ${next.error}`);
+  check(next.d.querySelector('[data-model="seedance25"]')?.classList.contains("on"),
+    `${app} seedance25 키가 2.5로 복원되지 않음`);
+  check(/^0-10s: /m.test(nextOutput) && /^10-20s: /m.test(nextOutput),
+    `${app} 2.5 저장값의 타임라인이 복원되지 않음`);
+  next.dom.window.close();
 }
 
 console.log(fail ? "저장 상태 검수 실패" : "저장 상태 검수 통과");

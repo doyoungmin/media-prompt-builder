@@ -52,12 +52,17 @@ for (const app of ["t2v", "i2v"]) {
   const models = [...d.querySelectorAll("[data-model]")].map(m => m.dataset.model);
   console.log(`  모델: ${models.join(", ")}`);
   bad(app, !models.includes("seedance"), "seedance 버튼 없음");
+  bad(app, !models.includes("seedance25"), "seedance25 버튼 없음");
 
   // Seedance 패널은 seedance 모델일 때만 보여야 한다
   click('[data-model="veo"]');
   bad(app, !d.getElementById("sdBox").hidden, "veo 모드에서 Seedance 패널이 보임");
   click('[data-model="seedance"]');
   bad(app, d.getElementById("sdBox").hidden, "seedance 모드에서 패널이 안 보임");
+  bad(app, d.querySelector("#sdBox .profile-label")?.textContent !== "연속숏 시간구간",
+      "2.0 패널 제목이 맞지 않음");
+  bad(app, [...d.querySelectorAll("#sdBox .sd-time")].map(e => e.textContent).join(",") !== "0-3s,3-6s",
+      "2.0 기본 타임라인이 맞지 않음");
   bad(app, !!d.querySelector("[data-sd-preserve]") !== (app === "i2v"),
       "참조 유지 컨트롤이 잘못된 앱에 있음");
 
@@ -116,6 +121,20 @@ for (const app of ["t2v", "i2v"]) {
   click('[data-sd-count="2"]');
   click("#undoBtn");
   bad(app, out() !== before, "되돌리기가 Seedance 입력을 복구하지 못함");
+
+  /* 2.5는 같은 입력값을 유지하면서 최대 30초용 타임라인으로만 해석해야 한다.
+     저장된 2.0 모델 키를 재활용하지 않고 별도 키로 둔 이유도 이 왕복을 안전하게 만들기 위해서다. */
+  click('[data-model="seedance25"]');
+  const txt25 = out();
+  bad(app, d.querySelector("#sdBox .profile-label")?.textContent !== "스토리 시간구간",
+      "2.5 패널 제목이 맞지 않음");
+  bad(app, !/^0-10s: /m.test(txt25) || !/^10-20s: /m.test(txt25) || !/^20-30s: /m.test(txt25),
+      "2.5의 30초 타임라인이 출력되지 않음");
+  bad(app, /One continuous shot/.test(txt25), "2.5 출력에 2.0 전용 단일숏 지시가 남음");
+  bad(app, d.querySelector('[data-sd-seg="0"]')?.value !== SEGS[app][0],
+      "2.5 전환 중 구간 입력이 사라짐");
+  click('[data-model="seedance"]');
+  bad(app, !/^6-10s: /m.test(out()), "2.0으로 돌아왔을 때 타임라인이 복구되지 않음");
 
   /* 구간 '텍스트' 편집도 한 단계로 잡혀야 한다 — 구간 수 버튼만 되고 텍스트는
      빠져 있어서, 같은 패널 안에서 되돌리기가 되는 것과 안 되는 것이 섞여 있었다. */
@@ -204,8 +223,8 @@ for (const app of ["t2v", "i2v"]) {
    키워드 나열형은 피사체를 쉼표로 이어 붙이므로 "…windowsill., golden hour…" 가 나갔다. */
 {
   const MODELS = { image: ["generic", "natural"],
-                   t2v:   ["veo", "generic", "seedance"],
-                   i2v:   ["veo", "generic", "seedance"] };
+                   t2v:   ["veo", "generic", "seedance", "seedance25"],
+                   i2v:   ["veo", "generic", "seedance", "seedance25"] };
   for (const [app, models] of Object.entries(MODELS)) {
     const { d, click, fill, out } = boot(app);
     fill("#subject", "a cat leaps onto a windowsill.");
@@ -219,6 +238,41 @@ for (const app of ["t2v", "i2v"]) {
     }
   }
   console.log("\n──────── 피사체 꼬리 마침표 검사 완료");
+}
+
+/* ── I2V: 움직임 한 줄 없이 구간만 쓴 경우 ──
+   구간은 사용자 입력인데 subject만 검사하면 완성된 프롬프트가 빈 문자열이 됐다. */
+{
+  const { d, click, fill, out } = boot("i2v");
+  click('[data-model="seedance"]');
+  fill('[data-sd-seg="0"]', "her eyes open and she slowly looks toward the window");
+  const txt = out();
+  console.log(`\n──────── i2v · 구간만 입력\n${txt.split("\n").map(l => "  | " + l).join("\n")}`);
+  bad("i2v/segment-only", !txt, "구간을 입력했는데 프롬프트가 비었음");
+  bad("i2v/segment-only", !txt.startsWith("Animate the reference image as the first frame."),
+      "참조 이미지를 첫 프레임으로 쓰는 머리말이 없음");
+  bad("i2v/segment-only", !/^0-3s: /m.test(txt), "입력한 구간 줄이 없음");
+  bad("i2v/segment-only", d.getElementById("copyBtn").disabled, "유효한 프롬프트인데 복사 버튼이 비활성");
+}
+
+/* ── T2V: 카메라 이동·피사체 모션·연속성 분리 ──
+   세 범주를 Camera 한 줄에 넣으면 '카메라가 다가가면서 거의 정지' 같은 모순이 생긴다. */
+{
+  const { d, click, fill, out } = boot("t2v");
+  click('[data-model="seedance"]');
+  fill("#subject", "a woman stands still while the camera approaches");
+  for (const kr of ["슬로우 푸시인", "미세한 움직임", "한 장면 유지"])
+    click(d.querySelector(`.chip[data-kr="${kr}"]`));
+  const lines = out().split("\n");
+  const camera = lines.find(l => l.startsWith("Camera: ")) || "";
+  const motion = lines.find(l => l.startsWith("Motion: ")) || "";
+  const continuity = lines.find(l => l.startsWith("Continuity: ")) || "";
+  console.log(`\n──────── t2v · 지시 범주 분리\n  | ${camera}\n  | ${motion}\n  | ${continuity}`);
+  bad("t2v/categories", !/slow dolly push-in/.test(camera), "카메라 이동이 Camera 줄에 없음");
+  bad("t2v/categories", /subtle minimal motion|continuous take/.test(camera),
+      "피사체 모션 또는 연속성이 Camera 줄에 섞임");
+  bad("t2v/categories", !/subtle minimal motion/.test(motion), "피사체 모션이 Motion 줄에 없음");
+  bad("t2v/categories", !/continuous take/.test(continuity), "장면 연속성이 Continuity 줄에 없음");
 }
 
 /* ── 피사체에 쓴 말은 항목과 겹쳐도 지워지지 않는다 (한 줄 출력) ──

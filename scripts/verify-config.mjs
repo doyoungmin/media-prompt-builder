@@ -65,6 +65,9 @@ for (const app of APPS) {
   // ── 대상 모델 ──
   const keys = C.models.map(m => m.key);
   bad(new Set(keys).size !== keys.length, `모델 키가 겹침: ${keys.join(", ")}`);
+  const seedanceModels = C.models.filter(m => m.seedance);
+  bad(Boolean(C.sd) !== Boolean(seedanceModels.length),
+    `CONFIG.sd 와 모델별 seedance 프로필 존재 여부가 다름`);
   for (const m of C.models) {
     bad(!m.key || !m.label || !m.help, `모델 '${m.key}' 에 key/label/help 중 빠진 것이 있음`);
     if (m.limit) bad(!(m.limit.short < m.limit.detail),
@@ -76,6 +79,26 @@ for (const app of APPS) {
     if (m.negative) {
       bad(/[.!?]/.test(m.negative), `모델 '${m.key}' 의 negative 에 문장 부호가 있음: ${m.negative}`);
       bad(!m.negative.trim(), `모델 '${m.key}' 의 negative 가 비었음`);
+    }
+    if (m.seedance) {
+      bad(typeof m.seedance.panelLabel !== "string" || !m.seedance.panelLabel.trim(),
+        `모델 '${m.key}' 의 seedance.panelLabel 이 비었음`);
+      for (const count of [2, 3]) {
+        const times = m.seedance.timeline?.[count];
+        bad(!Array.isArray(times) || times.length !== count,
+          `모델 '${m.key}' 의 ${count}구간 타임라인 개수가 ${count}개가 아님`);
+        if (!Array.isArray(times)) continue;
+        let previousEnd = 0;
+        for (const time of times) {
+          const match = /^(\d+)-(\d+)s$/.exec(time);
+          bad(!match, `모델 '${m.key}' 의 타임코드 형식이 잘못됨: ${time}`);
+          if (!match) continue;
+          const start = +match[1], end = +match[2];
+          bad(start !== previousEnd || end <= start,
+            `모델 '${m.key}' 의 타임코드가 연속 증가하지 않음: ${times.join(", ")}`);
+          previousEnd = end;
+        }
+      }
     }
   }
 
