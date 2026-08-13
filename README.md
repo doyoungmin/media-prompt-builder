@@ -72,9 +72,11 @@ npm run build            # dist/ 생성
 '대상 모델' 전환 버튼이 자동으로 생긴다. `guard` 는 텍스트·워터마크 방지 문구,
 `limit` 은 간결/상세 각각의 권장 단어 수다.
 
-화면의 버튼에는 `키워드형` 같은 내부 형식명이 아니라 사용자가 실제로 선택할 생성 모델명을
-쓴다. 도움말은 조립 방식을 설명하지 않고 “어느 서비스에서 만들 때 고르는지”만 짧게 안내한다.
-이미지 빌더는 GPT Image · Nano Banana · Ideogram · Stable Diffusion을 구분하며, 기존
+화면의 버튼에는 `키워드형` 같은 내부 형식명이 아니라 사용자가 알아볼 대표 생성 모델명을
+쓴다. 같은 프롬프트 구조를 쓰는 모델은 `GPT Image 등`처럼 묶고, 도움말에 포함 모델과
+출력 차이를 짧게 안내한다. 이미지 빌더는 문장형인 `GPT Image 등`(GPT Image 2 ·
+Nano Banana 2/Pro · Ideogram 3)과 키워드·네거티브 분리형인 `Stable Diffusion 등`
+(SDXL · Stable Diffusion 1.5 · 일부 ComfyUI 모델) 두 그룹을 지원한다. 기존
 `natural`/`generic` 저장 키는 이전 작업 복원을 위해 유지한다.
 
 현재 영상 빌더(t2v·i2v)는 Veo · **Seedance 2.5** · Seedance 2.0(레거시) · 범용 셋을 지원한다.
