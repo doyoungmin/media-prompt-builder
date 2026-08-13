@@ -4,7 +4,7 @@
  *  "쓸 수 있는 명령"으로 적혀 있었다. 아무도 한 번도 실행해 보지 않았기 때문이다.
  *  문법은 멀쩡해서 `node --check` 로는 안 잡힌다. 그래서 판정을 순수 함수로 내리고
  *  여기서 검사한다. 네트워크도 git 도 실제 배포도 필요 없다. */
-import { stdoutOf, gitProblems, ciVerdict, deployArgs } from "./ops-lib.mjs";
+import { stdoutOf, gitProblems, ciVerdict, deployArgs, releaseCheckArgs } from "./ops-lib.mjs";
 
 let fail = 0;
 function 검사(이름, fn) {
@@ -92,6 +92,14 @@ console.log("deployArgs — wrangler 인자 조립");
   const a = deployArgs("0".repeat(40), 'fix: "그것" 을 고침');
   같다(a[a.indexOf("--message") + 1], 'fix: "그것" 을 고침');
 });
+
+console.log("releaseCheckArgs — 배포 사전검사 인자 조립");
+검사("실제 배포는 모든 안전 조건을 확인한다", () =>
+  같다(releaseCheckArgs(), ["scripts/release-check.mjs"]));
+검사("dry-run 은 PR 에서 Git·CI 상태만 건너뛴다", () =>
+  같다(releaseCheckArgs({ dryRun: true }), [
+    "scripts/release-check.mjs", "--skip-git-state", "--skip-ci-status",
+  ]));
 
 /* 문서가 부르는 명령이 실재하는가.
 

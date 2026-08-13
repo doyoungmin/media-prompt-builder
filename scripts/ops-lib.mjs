@@ -51,6 +51,16 @@ export function deployArgs(sha, subject, { dryRun = false } = {}) {
   return args;
 }
 
+/** deploy.mjs 가 release-check 에 넘길 인자.
+ *  dry-run 은 PR 의 detached HEAD 에서도 배포 명령 자체를 검증해야 하므로
+ *  실제 배포 때만 필요한 main·원격 동기화·CI 성공 조건을 건너뛴다. */
+export function releaseCheckArgs({ dryRun = false } = {}) {
+  return [
+    "scripts/release-check.mjs",
+    ...(dryRun ? ["--skip-git-state", "--skip-ci-status"] : []),
+  ];
+}
+
 /** GitHub Actions 실행 목록 조회. gh CLI 를 쓰지 않는다 —
  *  다른 사람·다른 환경에서 gh 설치와 인증이 갖춰져 있으리라 기대할 수 없다.
  *  토큰이 있으면 쓰고(시간당 5000회), 없으면 공개 API 로 간다(시간당 60회). */

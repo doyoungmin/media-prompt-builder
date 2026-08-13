@@ -190,6 +190,9 @@ npm run deploy                # release-check → verify:all → wrangler deploy
 npm run deploy -- --dry-run   # 업로드만 빼고 전 경로. CI 가 매 push 마다 돌린다
 ```
 
+`--dry-run`은 PR의 detached HEAD에서도 실행할 수 있도록 실제 배포용 Git·CI 상태 확인만
+건너뛰고, 빌드 산출물과 Wrangler 배포 명령은 그대로 검사한다.
+
 `release-check.mjs`는 `main`인지, 작업 트리가 깨끗한지, `origin/main`과 같은지,
 그 커밋의 CI가 성공했는지를 본다. **`gh` CLI 는 필요 없다** — 네이티브 `fetch` 로
 GitHub API 를 본다. `GITHUB_TOKEN`이 있으면 쓰고(시간당 5000회) 없으면 공개 API(60회)다.
