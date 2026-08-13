@@ -65,6 +65,21 @@ function bootVideo(app, saved) {
   dom.window.close();
 }
 
+/* 한때 별도 버튼이던 Nano Banana·Ideogram은 GPT Image와 출력 구조가 같아 한 그룹으로
+   합쳤다. 예전 저장값을 열어도 첫 문장형 그룹으로 안전하게 복원돼야 한다. */
+for (const oldModel of ["nano", "ideogram"]) {
+  const { dom, d, error } = boot({
+    v: 2, sel: {}, subject: "a butterfly", model: oldModel,
+    length: "short", level: "easy", scope: {}, guard: true,
+    wiz: {}, preset: null, selOpen: false,
+  });
+  check(!error, `${oldModel} 구형 저장값 복원 중 예외: ${error}`);
+  check(d.querySelector('[data-model="natural"]')?.classList.contains("on"),
+    `${oldModel} 구형 저장값이 GPT Image 등 그룹으로 복원되지 않음`);
+  check(!d.querySelector(`[data-model="${oldModel}"]`), `${oldModel} 중복 버튼이 남아 있음`);
+  dom.window.close();
+}
+
 /* 타입이 깨진 저장값은 앱을 죽이지 않고 기본 상태로 시작해야 한다. */
 for (const [name, saved] of [
   ["문자열 선택", { v: 2, sel: { body: "corrupt" } }],

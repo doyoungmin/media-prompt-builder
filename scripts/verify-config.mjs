@@ -53,8 +53,17 @@ for (const app of APPS) {
     "기본 모델 도움말에 모델 선택과 무관한 설명이 섞임");
   if (app === "image") {
     bad(C.models[0]?.key !== "natural", "이미지 빌더의 신규 사용자 기본 모델이 GPT Image가 아님");
-    for (const key of ["natural", "nano", "ideogram", "generic"])
-      bad(!C.models.some(m => m.key === key), `이미지 빌더에 대표 모델 키가 없음: ${key}`);
+    const imageModels = C.models.map(m => m.key);
+    bad(JSON.stringify(imageModels) !== JSON.stringify(["natural", "generic"]),
+      `이미지 빌더 모델군이 실제 출력 구조 2개와 다름: ${imageModels.join(", ")}`);
+    const [natural, generic] = C.models;
+    bad(natural?.shortLabel !== "GPT Image 등", "문장형 모델군 버튼이 대표 모델명으로 묶이지 않음");
+    bad(!/GPT Image 2/.test(natural?.help || "") || !/Nano Banana/.test(natural?.help || "")
+      || !/Ideogram/.test(natural?.help || ""), "문장형 모델군 도움말에 포함 모델이 빠짐");
+    bad(generic?.shortLabel !== "Stable Diffusion 등",
+      "키워드형 모델군 버튼이 대표 모델명으로 묶이지 않음");
+    bad(!/SDXL/.test(generic?.help || "") || !/Stable Diffusion 1\.5/.test(generic?.help || "")
+      || !/ComfyUI/.test(generic?.help || ""), "키워드형 모델군 도움말에 포함 모델이 빠짐");
   }
   const secIds = new Set(DATA.map(d => d.id));
   const itemNames = new Set(Object.keys(lookup));

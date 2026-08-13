@@ -158,10 +158,10 @@ for (const w of WIDTHS) {
   });
 }
 
-/* 실제 모델명을 쓰면서 버튼이 길어졌다. 좁고 낮은 화면에서도 이름과 선택 안내가
-   잘리지 않아야 '무엇을 고를지'를 처음 보는 사람이 판단할 수 있다. */
+/* 대표 모델명을 쓰는 버튼이 좁고 낮은 화면에서도 잘리지 않아야
+   '무엇을 고를지'를 처음 보는 사람이 판단할 수 있다. */
 for (const app of [
-  { path: "/image/", labels: ["GPT Image", "Nano Banana", "Ideogram", "Stable Diffusion"] },
+  { path: "/image/", labels: ["GPT Image 등", "Stable Diffusion 등"] },
   { path: "/t2v/", labels: ["Veo", "Seedance 2.5", "Seedance 2.0", "Kling · Pika"] },
   { path: "/i2v/", labels: ["Veo", "Seedance 2.5", "Seedance 2.0", "Kling · Luma"] },
 ]) {
