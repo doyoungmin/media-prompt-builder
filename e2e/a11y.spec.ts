@@ -79,7 +79,7 @@ for (const app of APPS) {
       await page.locator("[data-preset]").first().click();
       expect(await 위반(page), `${app}/${theme}/프리셋 선택됨`).toEqual([]);
 
-      /* 네거티브 프롬프트 칸은 키워드형 모델에서만 나온다. 기본 모델로만 검사하면
+      /* 네거티브 프롬프트 칸은 Stable Diffusion 계열에서만 나온다. 기본 모델로만 검사하면
          이 마크업(읽기 전용 입력칸 + 두 번째 복사 버튼)은 아무도 안 본 채로 나간다.
          피사체를 채우는 이유 — i2v 는 움직임 설명이 없으면 프롬프트 자체를 만들지 않고,
          본문이 비면 네거티브 칸도 같이 숨는다(항목만 골라서는 이 칸을 못 본다). */

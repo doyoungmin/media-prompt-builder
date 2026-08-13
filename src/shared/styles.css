@@ -489,6 +489,11 @@
   .out .seg{height:34px;min-height:34px}
   .out .seg{padding:3px}
   .out .seg button{padding:0 6px;font-size:11px;line-height:26px}
+  /* 모델명은 줄여 쓴 기능명이 아니라 실제 서비스명이다. 네 개가 놓여도 이름을
+     자르지 않고 읽을 수 있도록 이 세그먼트만 두 줄 높이를 허용한다. */
+  .out .model-switch{height:auto;min-height:34px;align-items:stretch}
+  .out .model-switch button{min-width:0;min-height:28px;padding:4px 5px;
+    white-space:normal;line-height:1.15}
   .out .mode-help{margin-top:var(--sp2);padding-top:0;border-top:0;
     font-size:11px;line-height:1.5}
 
@@ -652,9 +657,10 @@
     .out-in>.selsum-box.open>.selsum{max-height:110px}
   }
 
-  /* 세로가 아주 짧은 창 — 보조 설명을 접고 결과 영역 최소 높이를 낮춘다 */
+  /* 세로가 아주 짧아도 모델 선택 설명은 숨기지 않는다. 모델명만 보고 망설이는
+     사용자를 위한 핵심 안내라, 대신 간격과 줄높이를 더 촘촘하게 만든다. */
   @media(max-height:800px){
-    .out .mode-help{display:none}
+    .out .mode-help{margin-top:0;font-size:10.5px;line-height:1.35}
     .out-in>#prompt{min-height:150px}
   }
 

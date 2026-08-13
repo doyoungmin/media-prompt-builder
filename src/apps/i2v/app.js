@@ -169,12 +169,12 @@ const CONFIG = {
   ],
 
   models:[
-    {key:"veo", label:"Veo", shortLabel:"Veo",
-     help:"움직임과 연속성 유지 지시를 구조화된 문장으로 조합합니다.",
+    {key:"veo", label:"Veo 3.1", shortLabel:"Veo",
+     help:"Google Veo에서 이미지를 영상으로 만들 때 선택하세요.",
      guard:" Keep the subject, composition and lighting consistent with the reference image. Render the frame clean, without any text or watermarks.",
      limit:{short:110, detail:190}},
     {key:"seedance25", label:"Seedance 2.5", shortLabel:"Seedance 2.5",
-     help:"참조 이미지를 첫 프레임으로 두고 최대 30초의 변화와 오디오를 시간 구간별로 지시합니다.",
+     help:"Seedance 최신 모델로 최대 30초 영상을 만들 때 선택하세요.",
      guard:" No on-screen text, watermark or camera UI overlay.",
      seedance:{
        panelLabel:"스토리 시간구간",
@@ -182,7 +182,7 @@ const CONFIG = {
      },
      limit:{short:220, detail:300}},
     {key:"seedance", label:"Seedance 2.0", shortLabel:"Seedance 2.0",
-     help:"참조 이미지를 첫 프레임으로 두고, 시간 구간별 움직임과 오디오를 지시합니다.",
+     help:"기존 Seedance 2.0 작업이나 6~10초 영상을 만들 때 선택하세요.",
      guard:" No on-screen text, watermark or camera UI overlay.",
      seedance:{
        panelLabel:"연속숏 시간구간",
@@ -190,8 +190,8 @@ const CONFIG = {
      },
      // 장면 묘사를 이미지가 대신하므로 T2V 보다 짧다
      limit:{short:110, detail:175}},
-    {key:"generic", label:"범용 (Kling · Luma · Pika 등)", shortLabel:"범용",
-     help:"짧은 키워드 나열형. 문장 해석이 약한 모델에 적합합니다.",
+    {key:"generic", label:"Kling · Luma · Pika 등", shortLabel:"Kling · Luma",
+     help:"Kling·Luma·Pika 등 다른 이미지-영상 모델을 사용할 때 선택하세요.",
      /* 긍정 지시(원본 스타일 유지)는 본문에 남기고, 빼고 싶은 것만 네거티브 칸으로 낸다.
         예전에는 둘이 한 문자열에 붙어 있어 부정 표현까지 본문으로 나갔다. */
      guard:", keep the reference image style",

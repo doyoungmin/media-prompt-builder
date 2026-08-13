@@ -232,12 +232,12 @@ const CONFIG = {
   ],
 
   models:[
-    {key:"veo", label:"Veo", shortLabel:"Veo",
-     help:"촬영법 · 피사체와 행동 · 카메라 · 조명 · 마감을 구조화된 문장으로 조합합니다. 긴 프롬프트를 잘 소화합니다.",
+    {key:"veo", label:"Veo 3.1", shortLabel:"Veo",
+     help:"Google Veo에서 영상을 만들 때 선택하세요.",
      guard:" Render the frame clean, without any text, watermarks or camera interface overlays.",
      limit:{short:130, detail:210}},
     {key:"seedance25", label:"Seedance 2.5", shortLabel:"Seedance 2.5",
-     help:"최대 30초 이야기 흐름을 시간 구간 · 카메라 · 모션 · 오디오로 나눠 지시합니다.",
+     help:"Seedance 최신 모델로 최대 30초 영상을 만들 때 선택하세요.",
      guard:" No on-screen text, watermark or camera UI overlay.",
      seedance:{
        panelLabel:"스토리 시간구간",
@@ -245,7 +245,7 @@ const CONFIG = {
      },
      limit:{short:260, detail:360}},
     {key:"seedance", label:"Seedance 2.0", shortLabel:"Seedance 2.0",
-     help:"시간 구간별로 무엇이 변하는지와 오디오를 함께 지시합니다. 아래 구간 입력칸을 채우세요.",
+     help:"기존 Seedance 2.0 작업이나 6~10초 영상을 만들 때 선택하세요.",
      guard:" No on-screen text, watermark or camera UI overlay.",
      seedance:{
        panelLabel:"연속숏 시간구간",
@@ -253,8 +253,8 @@ const CONFIG = {
      },
      // 2.0 은 4~15초. 구간을 나눠 쓰므로 단일 숏 형식보다 길어진다
      limit:{short:140, detail:210}},
-    {key:"generic", label:"범용 영상 (Kling · Pika 등)", shortLabel:"범용 영상",
-     help:"키워드 나열형. 문장 해석이 약한 모델에 적합합니다.",
+    {key:"generic", label:"Kling · Pika 등", shortLabel:"Kling · Pika",
+     help:"Kling·Pika 등 다른 영상 생성 모델을 사용할 때 선택하세요.",
      // Kling·Pika 는 네거티브 프롬프트 입력란이 따로 있다 — 본문에 부정문을 넣지 않는다
      negative:"text, watermark, camera UI overlay",
      // Kling·Pika 는 입력란이 넉넉해 키워드 나열이 길어도 받는다

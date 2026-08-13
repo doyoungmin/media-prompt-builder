@@ -222,7 +222,7 @@ for (const app of ["t2v", "i2v"]) {
 /* ── 피사체 꼬리 마침표 ──
    키워드 나열형은 피사체를 쉼표로 이어 붙이므로 "…windowsill., golden hour…" 가 나갔다. */
 {
-  const MODELS = { image: ["generic", "natural"],
+  const MODELS = { image: ["generic", "natural", "nano", "ideogram"],
                    t2v:   ["veo", "generic", "seedance", "seedance25"],
                    i2v:   ["veo", "generic", "seedance", "seedance25"] };
   for (const [app, models] of Object.entries(MODELS)) {

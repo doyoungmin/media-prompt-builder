@@ -243,8 +243,9 @@ function syncOutput(){
   });
   syncSdUI();
   const model=currentModel();
-  document.getElementById("modeHelp").textContent=model.help
-    +" 간결은 장비의 시각효과 설명을 생략하며, 선택한 항목 자체는 모두 포함합니다.";
+  /* 모델 선택을 망설이지 않도록 여기에는 '어디에 붙여넣는가'만 짧게 보여준다.
+     간결/상세의 차이는 바로 아래 출력 밀도 버튼이 맡는다. */
+  document.getElementById("modeHelp").textContent=model.help;
   const summary=`${model.label} · ${outputLength==="short"?"간결":"상세"}`;
 
   /* '텍스트 방지' — 방지 문구를 어디에 낼지는 모델마다 다르다.

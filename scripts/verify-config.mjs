@@ -43,6 +43,19 @@ for (const app of APPS) {
     fail = 1;
     continue;
   }
+
+  // ── 사용할 생성 모델 UI ──
+  const modelLabel = w.document.querySelector("#modelBox .profile-label")?.textContent.trim();
+  bad(modelLabel !== "사용할 생성 모델", `모델 선택 제목이 사용자용 문구가 아님: '${modelLabel}'`);
+  bad(w.document.getElementById("modelSwitch")?.getAttribute("aria-label") !== "사용할 생성 모델",
+    "모델 선택 접근성 이름이 화면 제목과 다름");
+  bad(w.document.getElementById("modeHelp")?.textContent !== C.models[0]?.help,
+    "기본 모델 도움말에 모델 선택과 무관한 설명이 섞임");
+  if (app === "image") {
+    bad(C.models[0]?.key !== "natural", "이미지 빌더의 신규 사용자 기본 모델이 GPT Image가 아님");
+    for (const key of ["natural", "nano", "ideogram", "generic"])
+      bad(!C.models.some(m => m.key === key), `이미지 빌더에 대표 모델 키가 없음: ${key}`);
+  }
   const secIds = new Set(DATA.map(d => d.id));
   const itemNames = new Set(Object.keys(lookup));
 
@@ -70,6 +83,11 @@ for (const app of APPS) {
     `CONFIG.sd 와 모델별 seedance 프로필 존재 여부가 다름`);
   for (const m of C.models) {
     bad(!m.key || !m.label || !m.help, `모델 '${m.key}' 에 key/label/help 중 빠진 것이 있음`);
+    bad(!m.shortLabel, `모델 '${m.key}' 의 버튼용 모델명이 없음`);
+    bad(/^(키워드형|문장형|범용|범용 영상)$/.test(m.shortLabel || ""),
+      `모델 '${m.key}' 버튼이 실제 모델명 대신 기능명임: ${m.shortLabel}`);
+    bad(/문장 해석|텍스트 이해력|키워드 나열형|구조화된 문장/.test(m.help),
+      `모델 '${m.key}' 도움말이 선택 기준 대신 기능 방식을 설명함: ${m.help}`);
     if (m.limit) bad(!(m.limit.short < m.limit.detail),
       `모델 '${m.key}' 의 limit 이 간결<상세 가 아님 (${m.limit.short}/${m.limit.detail})`);
     if (!m.guard && !m.negative) bad(!m.noGuardReason,
