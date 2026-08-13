@@ -22,7 +22,7 @@ function load(app) {
   dom.window.eval(compose(app) + `
     window.__cfg = CONFIG; window.__data = DATA; window.__order = ORDER;
     window.__wiz = WIZ; window.__presets = PRESETS; window.__lookup = lookup;
-    window.__moveGroups = MOVE_GROUPS;`);
+    window.__moveGroups = MOVE_GROUPS; window.__moveItemRoles = MOVE_ITEM_ROLES;`);
   return dom.window;
 }
 
@@ -64,6 +64,13 @@ for (const app of APPS) {
       "키워드형 모델군 버튼이 대표 모델명으로 묶이지 않음");
     bad(!/SDXL/.test(generic?.help || "") || !/Stable Diffusion 1\.5/.test(generic?.help || "")
       || !/ComfyUI/.test(generic?.help || ""), "키워드형 모델군 도움말에 포함 모델이 빠짐");
+  } else {
+    const videoModels = C.models.map(m => m.key);
+    bad(JSON.stringify(videoModels) !== JSON.stringify(["veo", "seedance25", "seedance", "generic"]),
+      `${app} 모델 목록이 지원 순서와 다름: ${videoModels.join(", ")}`);
+    const seedance25=C.models.find(m=>m.key==="seedance25");
+    bad(!/Higgsfield/.test(seedance25?.help||"") || !/30초/.test(seedance25?.help||""),
+      `${app} Seedance 2.5 도움말에 실제 제공 서비스와 최대 길이가 빠짐`);
   }
   const secIds = new Set(DATA.map(d => d.id));
   const itemNames = new Set(Object.keys(lookup));
@@ -140,6 +147,11 @@ for (const app of APPS) {
       bad(!real.has(label), `MOVE_GROUPS 가 없는 그룹을 가리킴: '${label}'`);
     for (const label of real)
       bad(!listed.includes(label), `무빙 그룹 '${label}' 이 MOVE_GROUPS 어디에도 없음 — 프롬프트에서 빠진다`);
+    const roles = new Set(Object.keys(w.__moveGroups));
+    for (const [item, role] of Object.entries(w.__moveItemRoles)) {
+      bad(!itemNames.has(item), `MOVE_ITEM_ROLES 가 없는 항목을 가리킴: '${item}'`);
+      bad(!roles.has(role), `MOVE_ITEM_ROLES '${item}' 의 역할이 잘못됨: '${role}'`);
+    }
   }
 
   // ── 가이드 ──
@@ -166,6 +178,10 @@ for (const app of APPS) {
     bad(typeof C.sd.preserve !== "boolean", "sd.preserve 는 boolean 이어야 함");
     if (C.sd.segHints) bad(C.sd.segHints.length < 3,
       `sd.segHints 가 ${C.sd.segHints.length}개 — 3구간 모드에서 모자람`);
+    const countLabel = w.document.getElementById("sd-count-label");
+    const countGroup = w.document.querySelector("[data-sd-count]")?.parentElement;
+    bad(!countLabel || countGroup?.getAttribute("aria-labelledby") !== countLabel.id,
+      "Seedance 시간구간 제목과 접근성 이름이 연결되지 않음");
   }
 
   // ── build() 가 모든 모델에서 문자열을 내놓는가 ──

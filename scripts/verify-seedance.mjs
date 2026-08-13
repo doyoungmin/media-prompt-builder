@@ -33,7 +33,7 @@ function boot(app) {
   dom.window.eval(compose(app) + `
     /* 검사에서 '진짜 항목 문구' 를 집으려면 켜져 있는 항목과 그 영어 문구가 필요하다.
        출력 문자열에서 조각을 주워 쓰면 "animate this image" 같은 고정 문구까지 섞인다. */
-    window.__state = state; window.__lookup = lookup;`);
+    window.__state = state; window.__lookup = lookup; window.__cfg = CONFIG;`);
   const d = dom.window.document;
   return {
     dom, d, win: dom.window,
@@ -61,6 +61,8 @@ for (const app of ["t2v", "i2v"]) {
   bad(app, d.getElementById("sdBox").hidden, "seedance 모드에서 패널이 안 보임");
   bad(app, d.querySelector("#sdBox .profile-label")?.textContent !== "연속숏 시간구간",
       "2.0 패널 제목이 맞지 않음");
+  bad(app, d.querySelector('[data-sd-count]')?.parentElement?.getAttribute("aria-labelledby") !== "sd-count-label",
+      "시간구간 컨트롤의 접근성 이름이 화면 제목과 연결되지 않음");
   bad(app, [...d.querySelectorAll("#sdBox .sd-time")].map(e => e.textContent).join(",") !== "0-3s,3-6s",
       "2.0 기본 타임라인이 맞지 않음");
   bad(app, !!d.querySelector("[data-sd-preserve]") !== (app === "i2v"),
@@ -122,11 +124,11 @@ for (const app of ["t2v", "i2v"]) {
   click("#undoBtn");
   bad(app, out() !== before, "되돌리기가 Seedance 입력을 복구하지 못함");
 
-  /* 2.5는 같은 입력값을 유지하면서 최대 30초용 타임라인으로만 해석해야 한다.
-     저장된 2.0 모델 키를 재활용하지 않고 별도 키로 둔 이유도 이 왕복을 안전하게 만들기 위해서다. */
+  /* 2.5는 같은 입력값을 유지하면서 Higgsfield의 최대 30초 타임라인으로 해석한다.
+     2.0과 저장 키를 분리해 기존 작업이 모델 전환만으로 다른 시간축이 되지 않게 한다. */
   click('[data-model="seedance25"]');
   const txt25 = out();
-  bad(app, d.querySelector("#sdBox .profile-label")?.textContent !== "스토리 시간구간",
+  bad(app, d.querySelector("#sd-count-label")?.textContent !== "스토리 시간구간",
       "2.5 패널 제목이 맞지 않음");
   bad(app, !/^0-10s: /m.test(txt25) || !/^10-20s: /m.test(txt25) || !/^20-30s: /m.test(txt25),
       "2.5의 30초 타임라인이 출력되지 않음");
@@ -156,6 +158,36 @@ for (const app of ["t2v", "i2v"]) {
   // 초기화
   click('[data-act="reset"]');
   bad(app, /0-3s: /.test(out()), "초기화 후에도 구간 내용이 남아 있음");
+}
+
+/* ── 권장 길이 실측 ──
+   limit 은 하드 제한이 아니라 대표 프리셋 + 사용자 입력 여유다. 모든 프리셋의 실제
+   최대치보다 작거나 25단어 넘게 느슨하면 경고가 너무 잦거나 사실상 죽는다. */
+for (const app of ["t2v", "i2v"]) {
+  const { d, win, click, fill, out } = boot(app);
+  fill("#subject", SUBJECT[app]);
+  const presetCount = d.querySelectorAll("[data-preset]").length;
+  for (const modelKey of ["seedance25", "seedance"]) {
+    click(`[data-model="${modelKey}"]`);
+    fill('[data-sd-seg="0"]', SEGS[app][0]);
+    fill('[data-sd-seg="1"]', SEGS[app][1]);
+    const model = win.__cfg.models.find(m => m.key === modelKey);
+    for (const length of ["short", "detail"]) {
+      click(`[data-length="${length}"]`);
+      let max = 0;
+      for (let i = 0; i < presetCount; i++) {
+        click(d.querySelectorAll("[data-preset]")[i]);
+        max = Math.max(max, out().trim().split(/\s+/).filter(Boolean).length);
+      }
+      const limit = model.limit[length];
+      const slack = limit - max;
+      console.log(`\n──────── ${app} · ${model.label} ${length} 최대 ${max}단어 / 권장 ${limit}단어`);
+      bad(`${app}/${modelKey}/${length}/limit`, slack < 0,
+        `대표 프리셋 최대 ${max}단어보다 권장 길이 ${limit}가 짧음`);
+      bad(`${app}/${modelKey}/${length}/limit`, slack > 25,
+        `대표 프리셋 최대보다 ${slack}단어 느슨해 경고가 무의미함`);
+    }
+  }
 }
 
 /* ── 사람이 쓴 줄은 앞줄과 문구가 겹쳐도 지워지지 않는다 ──
@@ -255,24 +287,31 @@ for (const app of ["t2v", "i2v"]) {
   bad("i2v/segment-only", d.getElementById("copyBtn").disabled, "유효한 프롬프트인데 복사 버튼이 비활성");
 }
 
-/* ── T2V: 카메라 이동·피사체 모션·연속성 분리 ──
-   세 범주를 Camera 한 줄에 넣으면 '카메라가 다가가면서 거의 정지' 같은 모순이 생긴다. */
-{
-  const { d, click, fill, out } = boot("t2v");
+/* ── 카메라·피사체 모션·연속성·렌더링 분리 ──
+   UI 의 '장면 제어'는 의미 범주가 아니다. 그 안의 항목도 실제 프롬프트 역할로 갈라야 한다. */
+for (const app of ["t2v", "i2v"]) {
+  const { d, click, fill, out } = boot(app);
   click('[data-model="seedance"]');
-  fill("#subject", "a woman stands still while the camera approaches");
-  for (const kr of ["슬로우 푸시인", "미세한 움직임", "한 장면 유지"])
+  fill("#subject", app === "t2v"
+    ? "a woman stands still while the camera approaches"
+    : "the woman remains still while the environment moves");
+  for (const kr of ["고정 (트라이포드)", "카메라 고정 유지", "피사체 정지", "24fps 시네마틱", "한 장면 유지"])
     click(d.querySelector(`.chip[data-kr="${kr}"]`));
   const lines = out().split("\n");
   const camera = lines.find(l => l.startsWith("Camera: ")) || "";
   const motion = lines.find(l => l.startsWith("Motion: ")) || "";
   const continuity = lines.find(l => l.startsWith("Continuity: ")) || "";
-  console.log(`\n──────── t2v · 지시 범주 분리\n  | ${camera}\n  | ${motion}\n  | ${continuity}`);
-  bad("t2v/categories", !/slow dolly push-in/.test(camera), "카메라 이동이 Camera 줄에 없음");
-  bad("t2v/categories", /subtle minimal motion|continuous take/.test(camera),
-      "피사체 모션 또는 연속성이 Camera 줄에 섞임");
-  bad("t2v/categories", !/subtle minimal motion/.test(motion), "피사체 모션이 Motion 줄에 없음");
-  bad("t2v/categories", !/continuous take/.test(continuity), "장면 연속성이 Continuity 줄에 없음");
+  const style = lines.find(l => l.startsWith("Style: ")) || "";
+  const tag = `${app}/categories`;
+  console.log(`\n──────── ${app} · 지시 범주 분리\n  | ${camera}\n  | ${motion}\n  | ${continuity}\n  | ${style}`);
+  bad(tag, !/locked-off camera/.test(camera), "카메라 고정이 Camera 줄에 없음");
+  bad(tag, (camera.match(/locked-off camera/g)||[]).length !== 1,
+      "같은 카메라 고정 지시가 Camera 줄에서 중복됨");
+  bad(tag, !/subject stays still/.test(motion), "피사체 정지가 Motion 줄에 없음");
+  bad(tag, !/continuous take/.test(continuity), "한 장면 유지가 Continuity 줄에 없음");
+  bad(tag, !/24fps/.test(style), "프레임 레이트가 Style 줄에 없음");
+  bad(tag, /locked-off camera|subject stays still|24fps/.test(continuity),
+      "Continuity 줄에 카메라·모션·렌더링 지시가 섞임");
 }
 
 /* ── 피사체에 쓴 말은 항목과 겹쳐도 지워지지 않는다 (한 줄 출력) ──

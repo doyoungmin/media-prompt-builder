@@ -174,22 +174,23 @@ const CONFIG = {
      guard:" Keep the subject, composition and lighting consistent with the reference image. Render the frame clean, without any text or watermarks.",
      limit:{short:110, detail:190}},
     {key:"seedance25", label:"Seedance 2.5", shortLabel:"Seedance 2.5",
-     help:"Seedance 최신 모델로 최대 30초 영상을 만들 때 선택하세요.",
+     help:"Higgsfield의 Seedance 2.5로 최대 30초 영상을 만들 때 선택하세요.",
      guard:" No on-screen text, watermark or camera UI overlay.",
      seedance:{
        panelLabel:"스토리 시간구간",
        timeline:{2:["0-10s","10-20s"], 3:["0-10s","10-20s","20-30s"]},
      },
-     limit:{short:220, detail:300}},
+     // 대표 프리셋 + 기본 2구간 실측 최대 109/121단어에 추가 입력 여유를 포함
+     limit:{short:125, detail:140}},
     {key:"seedance", label:"Seedance 2.0", shortLabel:"Seedance 2.0",
-     help:"기존 Seedance 2.0 작업이나 6~10초 영상을 만들 때 선택하세요.",
+     help:"Seedance 2.0으로 6~10초 영상을 만들 때 선택하세요.",
      guard:" No on-screen text, watermark or camera UI overlay.",
      seedance:{
        panelLabel:"연속숏 시간구간",
        timeline:{2:["0-3s","3-6s"], 3:["0-3s","3-6s","6-10s"]},
      },
-     // 장면 묘사를 이미지가 대신하므로 T2V 보다 짧다
-     limit:{short:110, detail:175}},
+     // 대표 프리셋 + 기본 2구간 실측 최대 103/115단어에 추가 입력 여유를 포함
+     limit:{short:125, detail:135}},
     {key:"generic", label:"Kling · Luma · Pika 등", shortLabel:"Kling · Luma",
      help:"Kling·Luma·Pika 등 다른 이미지-영상 모델을 사용할 때 선택하세요.",
      /* 긍정 지시(원본 스타일 유지)는 본문에 남기고, 빼고 싶은 것만 네거티브 칸으로 낸다.
@@ -206,19 +207,16 @@ const CONFIG = {
        유지 수준은 사용자가 고른다 — 엄격히 묶으면 안전하지만 움직임이 죽는다. */
     /* 무빙 섹션은 카메라의 움직임 · 움직임의 크기 · 속도감 · 장면 제어가 한데 있다.
        라벨을 붙여 낼 때는 갈라야 한다 — 05-derive 의 MOVE_GROUPS 주석 참고. */
-    const G=MOVE_GROUPS;
-    const cameraMove=itemsIn("move",G.camera);
-    const motionAmount=itemsIn("move",G.amount);
-    const continuity=itemsIn("move",G.scene);
-    const rendering=[...itemsIn("move",G.time), ...items("tech")];
+    const cameraMove=moveItems("camera");
+    const motionAmount=moveItems("amount");
+    const continuity=moveItems("scene");
+    const rendering=[...moveItems("time"), ...items("tech")];
     if(model==="seedance" || model==="seedance25"){
-      /* 구간만 채운 사람도 유효한 입력을 한 것이다. 반대로 설명·구간이 모두 비면
-         유지 문구만 든 프롬프트를 만들지 않는다. */
-      if(!motion && !sdSegments().length) return "";
       const preserve = sd.preserve==="strict"
         ? "Keep the subject identity, outfit, composition, lighting and visual style unchanged from the reference image."
         : "Keep the subject clearly recognisable from the reference image; natural variation in pose and lighting is fine.";
       return sdPrompt({
+        hasUserInput:!!motion,
         head: "Animate the reference image as the first frame."+(motion ? " "+dot(cap(motion)) : ""),
         camera: listText([...cameraMove, ...items("shot")]),
         motion: listText(motionAmount),

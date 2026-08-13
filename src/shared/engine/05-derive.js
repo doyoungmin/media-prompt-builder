@@ -15,7 +15,7 @@ const DATA = ALL_DATA
   // 화면 순서 = 프롬프트 순서 (중요한 섹션이 위로 오고 자동으로 펼쳐진다)
   .sort((a,b)=>CONFIG.order.indexOf(a.id)-CONFIG.order.indexOf(b.id));
 
-/* ── 무빙 섹션의 성격별 그룹 ──
+/* ── 무빙 섹션의 프롬프트 역할 ──
    무빙 한 섹션에 성격이 다른 것들이 모여 있다 — 카메라가 어떻게 움직이는가 ·
    피사체가 얼마나 움직이는가 · 속도감 · 장면 제어. 화면에서는 그룹으로 갈라 보이지만
    프롬프트에서 한 라벨 아래 몰면 "Camera motion: 다가간다, 거의 정지" 처럼 읽혀
@@ -24,13 +24,23 @@ const DATA = ALL_DATA
    그룹에 xg 를 달아 가르지 않는 이유 — xg 는 '이 묶음에서 하나만' 이라는 뜻이라
    (07-events 의 selectItem 참고), 함께 골라야 하는 장면 제어 항목들이 서로를 밀어낸다.
    실제로 프리셋들이 '카메라 고정 유지' 와 '한 장면 유지' 를 같이 쓴다.
-   그래서 그룹 라벨로 가른다. 라벨이 바뀌면 verify:config 가 잡는다. */
+   그래서 그룹 라벨을 기본 역할로 쓰되, UI 의 '장면 제어'처럼 성격이 섞인 그룹은
+   항목별 역할로 덮어쓴다. 라벨·항목이 바뀌면 verify:config 가 잡는다. */
 const MOVE_GROUPS={
   camera:["기본 무빙","고급 · 특수 무빙","포커스 연출"],
   amount:["움직임의 크기"],
   time:["시간 표현"],
   scene:["장면 제어"],
 };
+const MOVE_ITEM_ROLES={
+  "카메라 고정 유지":"camera",
+  "피사체 정지":"amount",
+  "24fps 시네마틱":"time",
+  "60fps 부드럽게":"time",
+};
+const MOVE_GROUP_ROLE=Object.fromEntries(
+  Object.entries(MOVE_GROUPS).flatMap(([role,groups])=>groups.map(group=>[group,role]))
+);
 
 const ORDER = CONFIG.order.filter(id=>DATA.some(d=>d.id===id));
 const lookup={}, state={}, scope={};

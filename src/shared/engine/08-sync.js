@@ -21,11 +21,13 @@ const SD_BOX=CONFIG.sd ? buildSdPanel() : null;
 function buildSdPanel(){
   const box=document.createElement("div");
   box.className="sd-box"; box.id="sdBox"; box.hidden=true;
-  const seg=(label,name,opts)=>
-    `<span class="profile-label">${label}</span>`
-    +`<div class="seg" role="group" aria-label="${label}">`
+  const seg=(label,name,opts)=>{
+    const labelId=`sd-${name}-label`;
+    return `<span class="profile-label" id="${labelId}">${label}</span>`
+    +`<div class="seg" role="group" aria-labelledby="${labelId}">`
     +opts.map(([v,t])=>`<button data-sd-${name}="${v}">${t}</button>`).join("")
     +`</div>`;
+  };
   box.innerHTML=
      seg("시간구간","count",[["2","2구간"],["3","3구간"]])
     +`<div class="sd-segs" id="sdSegs"></div>`
@@ -95,7 +97,7 @@ function syncSdUI(){
     SD_BOX.dataset.model=modelKey;
     redrawSd();
   }
-  const label=SD_BOX.querySelector(".profile-label");
+  const label=SD_BOX.querySelector("#sd-count-label");
   label.textContent=profile.panelLabel;
   SD_BOX.querySelectorAll("[data-sd-count]").forEach(b=>{
     const count=+b.dataset.sdCount;
@@ -374,14 +376,21 @@ function syncOutput(){
    각각 다른 칸에 저장돼, 메뉴로 옮겨 다닐 때 작업이 사라진 것처럼 보인다. */
 const STORE_KEY="prompt-builder:"+APP_ID;
 const STORE_V=2;
+const LEGACY_MODEL_KEYS={
+  image:{nano:"natural",ideogram:"natural"},
+};
 const isRecord=v=>!!v && typeof v==="object" && !Array.isArray(v);
 const stringArray=v=>Array.isArray(v) ? v.filter(x=>typeof x==="string") : [];
 /* v1 → v2 는 저장값 검증을 도입한 버전이다. 기존 선택은 유지하되,
    알 수 없는 버전은 무리하게 해석하지 않고 기본 상태로 시작한다. */
 function migrateSavedState(saved){
   if(!isRecord(saved)) return null;
-  if(saved.v===1) return {...saved,v:STORE_V};
-  return saved.v===STORE_V ? saved : null;
+  const next=saved.v===1 ? {...saved,v:STORE_V}
+    : saved.v===STORE_V ? {...saved} : null;
+  if(!next) return null;
+  const replacement=LEGACY_MODEL_KEYS[APP_ID]?.[next.model];
+  if(replacement) next.model=replacement;
+  return next;
 }
 function storage(){ try{ return window.localStorage; }catch(e){ return null; } }
 

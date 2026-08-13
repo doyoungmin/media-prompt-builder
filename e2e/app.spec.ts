@@ -137,7 +137,7 @@ for (const [label, bad] of [
 }
 
 /* 레이아웃 회귀 — jsdom 은 레이아웃을 계산하지 않아 이 부류를 전혀 못 잡는다 */
-const WIDTHS = [1440, 1100, 900, 768, 430, 360];
+const WIDTHS = [1440, 1100, 900, 768, 430, 360, 320];
 for (const w of WIDTHS) {
   test(`폭 ${w}px 에서 헤더·버튼이 화면 안에 있다`, async ({ page }) => {
     await page.setViewportSize({ width: w, height: 900 });
@@ -166,15 +166,29 @@ for (const app of [
   { path: "/i2v/", labels: ["Veo", "Seedance 2.5", "Seedance 2.0", "Kling · Luma"] },
 ]) {
   test(`${app.path} 좁은 화면에서 생성 모델명이 모두 보인다`, async ({ page }) => {
-    await page.setViewportSize({ width: 360, height: 740 });
+    await page.setViewportSize({ width: 320, height: 740 });
     await page.goto(app.path);
     await page.click(".mobile-out-bar");
     await expect(page.locator("#modelBox .profile-label")).toHaveText("사용할 생성 모델");
     await expect(page.locator("[data-model]")).toHaveText(app.labels);
     await expect(page.locator("#modeHelp")).toBeVisible();
-    const overflow = await page.locator("#modelSwitch").evaluate(el =>
-      el.scrollWidth > el.clientWidth + 1);
-    expect(overflow, "생성 모델 버튼 가로 넘침").toBe(false);
+    const layout = await page.locator("#modelSwitch").evaluate(el => {
+      const box = el.getBoundingClientRect();
+      return {
+        overflow: el.scrollWidth > el.clientWidth + 1,
+        buttons: [...el.querySelectorAll("button")].map(button => {
+          const rect = button.getBoundingClientRect();
+          return {
+            text: button.textContent,
+            clipped: button.scrollWidth > button.clientWidth + 1,
+            outside: rect.left < box.left - 1 || rect.right > box.right + 1,
+          };
+        }),
+      };
+    });
+    expect(layout.overflow, "생성 모델 묶음 가로 넘침").toBe(false);
+    expect(layout.buttons.filter(button => button.clipped || button.outside),
+      "잘리거나 묶음 밖으로 나간 생성 모델 버튼").toEqual([]);
   });
 }
 

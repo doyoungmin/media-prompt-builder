@@ -237,22 +237,23 @@ const CONFIG = {
      guard:" Render the frame clean, without any text, watermarks or camera interface overlays.",
      limit:{short:130, detail:210}},
     {key:"seedance25", label:"Seedance 2.5", shortLabel:"Seedance 2.5",
-     help:"Seedance 최신 모델로 최대 30초 영상을 만들 때 선택하세요.",
+     help:"Higgsfield의 Seedance 2.5로 최대 30초 영상을 만들 때 선택하세요.",
      guard:" No on-screen text, watermark or camera UI overlay.",
      seedance:{
        panelLabel:"스토리 시간구간",
        timeline:{2:["0-10s","10-20s"], 3:["0-10s","10-20s","20-30s"]},
      },
-     limit:{short:260, detail:360}},
+     // 대표 프리셋 + 기본 2구간 실측 최대 127/173단어에 추가 입력 여유를 포함
+     limit:{short:140, detail:195}},
     {key:"seedance", label:"Seedance 2.0", shortLabel:"Seedance 2.0",
-     help:"기존 Seedance 2.0 작업이나 6~10초 영상을 만들 때 선택하세요.",
+     help:"Seedance 2.0으로 6~10초 영상을 만들 때 선택하세요.",
      guard:" No on-screen text, watermark or camera UI overlay.",
      seedance:{
        panelLabel:"연속숏 시간구간",
        timeline:{2:["0-3s","3-6s"], 3:["0-3s","3-6s","6-10s"]},
      },
-     // 2.0 은 4~15초. 구간을 나눠 쓰므로 단일 숏 형식보다 길어진다
-     limit:{short:140, detail:210}},
+     // 대표 프리셋 + 기본 2구간 실측 최대 128/173단어에 추가 입력 여유를 포함
+     limit:{short:140, detail:195}},
     {key:"generic", label:"Kling · Pika 등", shortLabel:"Kling · Pika",
      help:"Kling·Pika 등 다른 영상 생성 모델을 사용할 때 선택하세요.",
      // Kling·Pika 는 네거티브 프롬프트 입력란이 따로 있다 — 본문에 부정문을 넣지 않는다
@@ -266,12 +267,12 @@ const CONFIG = {
     /* Seedance 계열은 '시간이 지나며 무엇이 변하는가'를 줄 단위로 읽고 오디오도 같이
        만든다. 카메라 이동·피사체 움직임·장면 연속성을 서로 다른 줄로 분리해 모순을 막는다. */
     if(model==="seedance" || model==="seedance25"){
-      const G=MOVE_GROUPS;
-      const cameraMove=itemsIn("move",G.camera);
-      const motionAmount=itemsIn("move",G.amount);
-      const continuity=itemsIn("move",G.scene);
-      const rendering=[...itemsIn("move",G.time), ...pick("body","lens","light","film","tech")];
+      const cameraMove=moveItems("camera");
+      const motionAmount=moveItems("amount");
+      const continuity=moveItems("scene");
+      const rendering=[...moveItems("time"), ...pick("body","lens","light","film","tech")];
       return sdPrompt({
+        hasUserInput:!!subj,
         head: subj,
         camera: listText([...items("shot"), ...cameraMove]),
         motion: listText(motionAmount),

@@ -489,8 +489,7 @@
   .out .seg{height:34px;min-height:34px}
   .out .seg{padding:3px}
   .out .seg button{padding:0 6px;font-size:11px;line-height:26px}
-  /* 모델명은 줄여 쓴 기능명이 아니라 실제 서비스명이다. 네 개가 놓여도 이름을
-     자르지 않고 읽을 수 있도록 이 세그먼트만 두 줄 높이를 허용한다. */
+  /* 네 모델의 실제 서비스명을 좁은 화면에서도 자르지 않고 읽게 한다. */
   .out .model-switch{height:auto;min-height:34px;align-items:stretch}
   .out .model-switch button{min-width:0;min-height:28px;padding:4px 5px;
     white-space:normal;line-height:1.15}

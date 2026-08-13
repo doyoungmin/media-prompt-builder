@@ -259,7 +259,7 @@ const ALL_DATA = [
     ["60fps 부드럽게","60fps smooth motion","매끄럽고 선명한 움직임"],
     ["끊김 없는 루프","seamless loop, the first and last frame match","처음과 끝이 이어지는 반복 영상"],
     ["피사체 정지","the subject stays still while the environment moves","인물은 그대로, 배경만 살아 움직임"],
-    ["카메라 고정 유지","locked camera, the camera remains still","카메라가 움직이지 않고 고정됩니다"],
+    ["카메라 고정 유지","locked-off camera","카메라가 움직이지 않고 고정됩니다"],
   ]},
 ]},
 

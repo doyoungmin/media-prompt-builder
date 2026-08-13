@@ -9,9 +9,10 @@ function items(secId){
   return out;
 }
 const pick=(...ids)=>ids.flatMap(items);
-/* 한 섹션 안에서도 그룹에 따라 라벨을 갈라야 하는 곳이 있다 (MOVE_GROUPS 참고).
-   lookup 에 담아 둔 그룹 라벨로 거른다 — 화면에 보이는 묶음과 같은 기준이다. */
-const itemsIn=(secId,groups)=>items(secId).filter(it=>groups.includes(lookup[it.kr].grp));
+/* UI 그룹과 프롬프트 의미가 다른 예외는 항목별 역할을 우선한다.
+   예: '장면 제어' 안의 카메라 고정은 Continuity 가 아니라 Camera 로 보낸다. */
+const moveItems=role=>items("move").filter(it=>
+  (MOVE_ITEM_ROLES[it.kr]||MOVE_GROUP_ROLE[lookup[it.kr].grp])===role);
 function itemText(it){ return outputLength==="detail" && it.ext ? `${it.en}, ${it.ext}` : it.en; }
 function listText(arr){ return arr.map(itemText).filter(Boolean).join(", "); }
 function block(label,arr){ const t=listText(arr); return t?`${label}: ${t}.`:""; }
@@ -34,12 +35,11 @@ function sdAudioLine(){
   const note=sd.note.trim();
   return "Audio: "+body+(note ? " "+dot(cap(note)) : "");
 }
-function sdPrompt({head, camera, motion, continuity, style, keep}){
-  /* 사람이 쓴 내용이 하나도 없으면 프롬프트를 만들지 않는다.
-     유지 지시와 가드만으로도 문자열이 비지 않아, 아무것도 입력하지 않은 상태에서
-     복사 버튼이 살아 있었다 — 보일러플레이트만 든 '완성된 프롬프트' 가 복사돼 나간다. */
+function sdPrompt({hasUserInput, head, camera, motion, continuity, style, keep}){
+  /* head 에 I2V 보일러플레이트가 들어와도 사람이 쓴 설명·구간이 모두 비면 만들지 않는다.
+     호출부가 따로 막지 않아도 공용 조립 함수가 이 계약을 지켜야 새 모델 추가 시 안전하다. */
   const segs=sdSegments();
-  if(!head && !segs.length) return "";
+  if(!hasUserInput && !segs.length) return "";
   const lines=[];
   if(head)   lines.push(dot(cap(head)));
   segs.forEach(s=>lines.push(`${s.time}: ${dot(cap(s.text))}`));

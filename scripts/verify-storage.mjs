@@ -65,8 +65,8 @@ function bootVideo(app, saved) {
   dom.window.close();
 }
 
-/* 한때 별도 버튼이던 Nano Banana·Ideogram은 GPT Image와 출력 구조가 같아 한 그룹으로
-   합쳤다. 예전 저장값을 열어도 첫 문장형 그룹으로 안전하게 복원돼야 한다. */
+/* 한때 실제 별도 모델 키였던 Nano Banana·Ideogram은 GPT Image와 출력 구조가 같아
+   합쳤다. 기본 모델 순서에 기대지 않고 명시적 마이그레이션으로 natural에 복원한다. */
 for (const oldModel of ["nano", "ideogram"]) {
   const { dom, d, error } = boot({
     v: 2, sel: {}, subject: "a butterfly", model: oldModel,
@@ -101,8 +101,8 @@ for (const [name, saved] of [
   dom.window.close();
 }
 
-/* Seedance 2.5를 추가해도 기존 2.0 저장 작업은 2.0 타임라인으로 복원돼야 한다.
-   모델 키를 재활용하면 사용자가 열기만 해도 결과 의미가 6초에서 20초로 바뀐다. */
+/* 2.0과 2.5는 타임라인 의미가 다르므로 저장 키도 분리한다. 모델을 오가거나 저장값을
+   다시 열어도 2.0의 6초 작업이 2.5의 20초 작업으로 바뀌어서는 안 된다. */
 for (const app of ["t2v", "i2v"]) {
   const base = {
     v: 2, sel: {},
@@ -121,9 +121,9 @@ for (const app of ["t2v", "i2v"]) {
     `${app} 기존 2.0 저장값의 타임라인이 바뀜`);
   dom.window.close();
 
-  const newer = structuredClone(base);
-  newer.model = "seedance25";
-  const next = bootVideo(app, newer);
+  const saved25 = structuredClone(base);
+  saved25.model = "seedance25";
+  const next = bootVideo(app, saved25);
   const nextOutput = next.d.getElementById("prompt")?.value || "";
   check(!next.error, `${app} Seedance 2.5 저장값 복원 중 예외: ${next.error}`);
   check(next.d.querySelector('[data-model="seedance25"]')?.classList.contains("on"),
