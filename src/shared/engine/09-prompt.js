@@ -29,13 +29,17 @@ function sdSegments(){
     .map((time,i)=>({time, text:(sd.segs[i]||"").trim()}))
     .filter(s=>s.text);
 }
+/* '구간들에 걸쳐 일관되게' 같은 말은 구간을 실제로 쓴 경우에만 할 수 있다.
+   패널을 안 열면(기본값) 구간이 0개인데도 그렇게 말하고 있었다 — 없는 구조를
+   모델에 선언하는 셈이다. 호출부가 이걸 보고 문구를 고른다. */
+const sdMulti=()=>sdSegments().length>1;
 function sdAudioLine(){
   const body=SD_AUDIO[sd.audio];
   if(!body) return "";                     // 무음 — 줄 자체를 만들지 않는다 (메모 입력칸도 숨는다)
   const note=sd.note.trim();
   return "Audio: "+body+(note ? " "+dot(cap(note)) : "");
 }
-function sdPrompt({hasUserInput, head, camera, motion, continuity, style, keep}){
+function sdPrompt({hasUserInput, head, framing, camera, motion, continuity, style, keep}){
   /* head 에 I2V 보일러플레이트가 들어와도 사람이 쓴 설명·구간이 모두 비면 만들지 않는다.
      호출부가 따로 막지 않아도 공용 조립 함수가 이 계약을 지켜야 새 모델 추가 시 안전하다. */
   const segs=sdSegments();
@@ -43,6 +47,10 @@ function sdPrompt({hasUserInput, head, camera, motion, continuity, style, keep})
   const lines=[];
   if(head)   lines.push(dot(cap(head)));
   segs.forEach(s=>lines.push(`${s.time}: ${dot(cap(s.text))}`));
+  /* 프레이밍(무엇이 어떻게 담기는가)과 카메라(장비와 그 움직임)는 다른 지시다.
+     예전에는 프레이밍이 Camera 줄에 있고 정작 바디·렌즈는 Style 줄에 있어서
+     라벨과 내용이 서로 뒤바뀌어 있었다. */
+  if(framing) lines.push(dot("Framing: "+framing));
   if(camera) lines.push(dot("Camera: "+camera));
   /* 카메라의 움직임과 '피사체가 얼마나 움직이는가' 는 다른 지시다. 한 줄에 몰면
      "다가가면서 거의 정지" 로 읽힌다 (MOVE_GROUPS 참고). */
@@ -61,10 +69,16 @@ function plain(label,t){ const c=(t||"").trim().replace(/[.\s]+$/,""); return c?
 const subjectText=()=>document.getElementById("subject").value.trim().replace(/[.\s]+$/,"");
 const currentModel=()=>CONFIG.models.find(m=>m.key===modelKey);
 
+/* 꼬리에 붙는 문구는 두 종류이고 **성격이 다르다.**
+   anchor  이 모델에 늘 필요한 지시(예: I2V 의 '참조 이미지를 따르라'). 토글과 무관하다
+   guard   화면에 글자·워터마크를 그리지 말라는 방지 문구. '텍스트 방지' 토글이 끈다
+
+   예전에는 I2V 에서 둘이 한 문자열이었다. 그래서 영상에 글자를 넣으려고 토글을 끄면
+   참조 이미지를 따르라는 지시까지 함께 빠졌다 — 끈 사람은 그걸 알 수 없다. */
 function withGuard(txt){
-  const g=currentModel().guard;
-  if(!guardOn || !txt || !g) return txt;
-  return txt+g;
+  if(!txt) return txt;
+  const m=currentModel();
+  return txt + (m.anchor||"") + (guardOn && m.guard ? m.guard : "");
 }
 
 /* ── 네거티브 프롬프트 ──
@@ -109,7 +123,9 @@ function dedupeSentences(txt, seen, drop){
    구간 서술("0-3s: …")이나 피사체 한 줄에 항목과 같은 문구를 쓰면 그 부분이 통째로
    지워져, 쓴 사람 입장에서는 입력한 문장이 이유 없이 사라진 것으로 보였다.
    중복 제거는 항목에서 조립된 Camera·Style 줄에만 걸면 충분하다. */
-const SD_ITEM_LINE=/^(Camera|Motion|Continuity|Style): /;
+/* 항목에서 조립된 줄 — 여기에만 중복 제거를 건다. 라벨을 새로 만들면 반드시
+   여기에도 넣어야 한다. 빠뜨리면 그 줄만 조용히 중복이 안 걸러진다. */
+const SD_ITEM_LINE=/^(Framing|Camera|Motion|Continuity|Style): /;
 function dedupePhrases(txt){
   if(!txt) return txt;
   const seen=new Set();

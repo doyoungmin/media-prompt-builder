@@ -114,6 +114,15 @@ for (const app of APPS) {
       bad(/[.!?]/.test(m.negative), `모델 '${m.key}' 의 negative 에 문장 부호가 있음: ${m.negative}`);
       bad(!m.negative.trim(), `모델 '${m.key}' 의 negative 가 비었음`);
     }
+    /* anchor 는 '이 모델에 늘 필요한 지시'지 방지 문구가 아니다. 방지 문구를 여기 넣으면
+       '텍스트 방지' 토글이 끌 수 없는 문구가 되어 토글의 의미가 무너진다.
+       반대로 늘 필요한 지시를 guard 에 넣으면 토글을 끌 때 함께 빠진다 —
+       I2V 가 실제로 그랬다(참조 이미지 유지 지시가 방지 문구와 한 문자열이었다). */
+    if (m.anchor !== undefined) {
+      bad(!m.anchor.trim(), `모델 '${m.key}' 의 anchor 가 비었음`);
+      bad(/\b(text|watermark|overlay)\b/i.test(m.anchor),
+        `모델 '${m.key}' 의 anchor 에 방지 문구가 섞임 — guard·negative 로 보낼 것: ${m.anchor}`);
+    }
     if (m.seedance) {
       bad(typeof m.seedance.panelLabel !== "string" || !m.seedance.panelLabel.trim(),
         `모델 '${m.key}' 의 seedance.panelLabel 이 비었음`);

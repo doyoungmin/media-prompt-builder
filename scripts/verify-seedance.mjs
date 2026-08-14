@@ -314,6 +314,71 @@ for (const app of ["t2v", "i2v"]) {
       "Continuity 줄에 카메라·모션·렌더링 지시가 섞임");
 }
 
+/* ── 프레이밍 · 장비 · 스타일은 서로 다른 줄이다 ──
+   예전에는 Camera 줄에 프레이밍(샷 사이즈·구도)이 들어가고 정작 바디·렌즈는 Style 줄에
+   있었다. 라벨과 내용이 서로 뒤바뀐 것이고, 같은 선택이 Veo 에서는 'Camera and lens' 로
+   제대로 갈라져 나가고 있었으니 모델만 바꿔도 범주가 뒤집히는 상태였다. */
+{
+  const { d, click, fill, out } = boot("t2v");
+  click('[data-model="seedance"]');
+  fill("#subject", "a woman walks through a rainy alley");
+  for (const kr of ["와이드 / 풀샷", "슬로우 푸시인", "ARRI Alexa 35", "85mm 인물", "골든아워"])
+    click(d.querySelector(`.chip[data-kr="${kr}"]`));
+  const lines = out().split("\n");
+  const line = prefix => lines.find(l => l.startsWith(prefix)) || "";
+  const framing = line("Framing: "), camera = line("Camera: "), style = line("Style: ");
+  console.log(`\n──────── t2v · 프레이밍 / 장비 / 스타일 분리`);
+  console.log(`  | ${framing}\n  | ${camera}\n  | ${style}`);
+  const tag = "t2v/labels";
+  bad(tag, !/wide shot/.test(framing), "샷 사이즈가 Framing 줄에 없음");
+  bad(tag, !/slow dolly push-in/.test(camera), "카메라 무빙이 Camera 줄에 없음");
+  bad(tag, !/shot on ARRI Alexa 35/.test(camera), "카메라 바디가 Camera 줄에 없음");
+  bad(tag, !/85mm/.test(camera), "렌즈가 Camera 줄에 없음");
+  bad(tag, /shot on |shot at f\//.test(style), "장비 문구가 Style 줄에 남아 있음");
+  bad(tag, /wide shot/.test(camera + style), "프레이밍이 Camera·Style 줄에 섞임");
+  bad(tag, !/golden hour/.test(style), "조명이 Style 줄에 없음");
+}
+
+/* ── 없는 구간을 말하지 않는다 ──
+   Seedance 2.5 는 구간을 하나도 안 채워도 'across all segments' 라고 말하고 있었다.
+   패널을 안 연 기본 상태가 정확히 그렇다 — 존재하지 않는 구조를 모델에 선언하는 셈이다. */
+for (const app of ["t2v", "i2v"]) {
+  const { click, fill, out } = boot(app);
+  click('[data-model="seedance25"]');
+  fill("#subject", SUBJECT[app]);
+  const noSeg = out();
+  fill('[data-sd-seg="0"]', SEGS[app][0]);
+  fill('[data-sd-seg="1"]', SEGS[app][1]);
+  const withSeg = out();
+  const tag = `${app}/segments`;
+  console.log(`\n──────── ${app} · 구간 유무에 따른 마무리 문구`);
+  console.log(`  미입력 | ${noSeg.split("\n").at(-1)}`);
+  console.log(`  2구간  | ${withSeg.split("\n").at(-1)}`);
+  bad(tag, /segment/i.test(noSeg), "구간을 안 채웠는데 구간을 말함");
+  bad(tag, !/across all segments/.test(withSeg), "구간을 채웠는데 구간 일관성 지시가 없음");
+}
+
+/* ── '텍스트 방지'는 방지 문구만 끈다 ──
+   I2V 의 '참조 이미지를 따르라' 가 방지 문구와 한 문자열이라 토글을 끄면 함께 빠졌다.
+   토글을 끄는 이유는 화면에 글자를 넣고 싶어서지 원본을 버리고 싶어서가 아니다. */
+{
+  const { fill, click, out } = boot("i2v");
+  fill("#subject", SUBJECT.i2v);
+  for (const [model, anchor] of [["veo", "consistent with the reference image"],
+                                 ["generic", "keep the reference image style"]]) {
+    click(`[data-model="${model}"]`);
+    const on = out();
+    click("#guardBtn");
+    const off = out();
+    click("#guardBtn");                       // 다음 모델을 위해 되돌린다
+    const tag = `i2v/${model}/anchor`;
+    console.log(`\n──────── i2v · ${model} · 텍스트 방지 OFF\n  | ${off}`);
+    bad(tag, !on.includes(anchor), "텍스트 방지 ON 인데 참조 유지 지시가 없음");
+    bad(tag, !off.includes(anchor), "텍스트 방지를 끄자 참조 유지 지시까지 사라짐");
+    bad(tag, /watermark/.test(off), "텍스트 방지를 껐는데 방지 문구가 남음");
+  }
+}
+
 /* ── 피사체에 쓴 말은 항목과 겹쳐도 지워지지 않는다 (한 줄 출력) ──
    한 줄 출력은 라벨 블록을 순서대로 이어 붙이고 dedupe 는 앞에서부터 훑는다. 그래서
    항목 블록이 피사체 블록보다 **앞에** 있으면, 피사체에 쓴 조각이 그 항목 문구와 정확히

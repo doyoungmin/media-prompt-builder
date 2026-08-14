@@ -115,8 +115,11 @@ const HANGUL_RE=/[가-힣]/;
 
 /* 칩 안에 넣을 소형 미리보기 — 사진이 있으면 사진, 없으면 SVG 도식 또는 색 스와치.
    종류를 따로 알려주는 이유는 도식만 카드를 작게 깔기 때문이다(아래 sec 렌더 참고). */
+/* 사진 맵은 엔진에 하나뿐이라(01-data) 앱이 비워서 끌 수가 없다.
+   예시 사진을 쓰지 않는 앱(i2v — 룩을 원본 이미지가 이미 정한다)은 여기서 끈다. */
+const usePhotos = !CONFIG.noPreviewImages;
 function pvKind(kr){
-  if(typeof PHOTO!=="undefined" && PHOTO[kr]) return "photo";
+  if(usePhotos && PHOTO[kr]) return "photo";
   if(typeof PREVIEW!=="undefined" && PREVIEW[kr]) return "svg";
   if(typeof SWATCH!=="undefined" && SWATCH[kr]) return "sw";
   return "";

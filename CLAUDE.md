@@ -48,7 +48,9 @@ CI 가 빨간불이면 실행 페이지 아래에 **`playwright-debug`** 아티�
 | `scripts/extract-assets.mjs` | as-is HTML 에서 사진을 뽑던 일회성 스크립트 |
 | `dist/` `test-results/` `playwright-report/` | 산출물. gitignore 돼 있다 |
 
-라벨 → 사진 연결의 정본은 **`src/apps/*/app.js` 의 `GUIDE_IMG`** 하나뿐이다.
+라벨 → 사진 연결의 정본은 **`src/shared/engine/01-data.js` 의 `GUIDE_IMG`** 하나뿐이다.
+예전에는 이게 `image`·`t2v` 의 app.js 에 두 벌 있었는데, 검수가 **파일 목록만** 대조해서
+두 라벨의 사진을 서로 바꿔 놔도 통과했다. 그래서 한 벌로 합쳤다.
 
 ---
 
@@ -62,14 +64,15 @@ CI 가 빨간불이면 실행 페이지 아래에 **`playwright-debug`** 아티�
 
 - 조각 안에 `import` / `export` 를 쓰면 안 된다 — 스모크가 막는다
 - **파일명 앞 번호가 곧 실행 순서**다
-- 앱마다 다른 부분은 `src/apps/<app>/app.js` 에 있고, 엔진의 `/*==SLOT:n==*/` 자리에 끼워 넣는다
+- 앱마다 다른 부분은 `src/apps/<app>/app.js` 의 `CONFIG` 하나이고, 엔진의 `/*==SLOT:1==*/` 자리에 끼워 넣는다
+  (슬롯이 셋이던 때가 있었다. 나머지 둘에 들어가던 사진 맵·충돌 규칙이 세 앱에서 **완전히 같아서** 엔진으로 올렸다)
 - 조립은 `scripts/compose-engine.mjs` 가 하고, vite 는 이걸 `virtual:engine-<app>` 으로 노출한다
 
 그래서 **공통 동작을 고칠 때는 엔진 한 곳만, 앱별 항목을 고칠 때는 그 앱의 app.js 한 곳만** 고치면 된다.
 
 | 조각 | 무엇 |
 |---|---|
-| `01-data.js` | 항목 데이터 — 세 앱이 함께 쓰는 원본 목록 |
+| `01-data.js` | 항목 데이터 — 세 앱이 함께 쓰는 원본 목록 · 라벨 → 사진 맵 3종 |
 | `02~04-preview*.js` | 도식·색 스와치·효과 서술·레퍼런스 룩·충돌 규칙 (SLOT 3곳) |
 | `05-derive.js` | 앱 설정으로 걸러 낸 파생 상태 |
 | `06-render.js` | 화면 생성 · 가이드 사진 srcset |
@@ -85,12 +88,24 @@ CI 가 빨간불이면 실행 페이지 아래에 **`playwright-debug`** 아티�
 그린다. 둘을 함께 쓸 수 있다(i2v 범용: 긍정 지시는 `guard`, 뺄 것은 `negative`).
 칸은 `08-sync.js` 가 만들고 `negative` 를 쓰는 모델이 없는 앱에는 아예 안 생긴다.
 
+**늘 필요한 지시는 `guard` 가 아니라 `anchor` 다.** I2V 의 "참조 이미지를 따르라"가
+방지 문구와 한 문자열로 묶여 있어서, 영상에 글자를 넣으려고 '텍스트 방지'를 끄면
+그 지시까지 함께 빠졌다. `anchor` 는 토글의 영향을 받지 않는다. 둘을 다시 합치면
+`verify:config` 가 잡는다(anchor 안의 text·watermark 를 막는다).
+
 ### 무빙 섹션은 라벨을 붙일 때 갈라야 한다
 
 무빙 한 섹션에 카메라의 움직임 · 움직임의 크기 · 속도감 · 장면 제어가 같이 있다.
 한 라벨 아래 몰면 `Camera motion: slow dolly push-in, subtle minimal motion, almost still`
 처럼 **다가가면서 정지해 있으라는 모순**이 된다. `05-derive.js` 의 `MOVE_GROUPS` 로 가르고,
-그룹 라벨이 바뀌면 `verify:config` 가 잡는다. **그룹에 `xg` 를 달아 가르면 안 된다** —
+그룹 라벨이 바뀌면 `verify:config` 가 잡는다.
+
+같은 이유로 Seedance 줄도 갈라져 있다 — `Framing`(무엇이 어떻게 담기는가) ·
+`Camera`(장비와 그 움직임) · `Motion` · `Continuity` · `Style`. 한때 프레이밍이 `Camera`
+줄에 있고 바디·렌즈가 `Style` 줄에 있어 **라벨과 내용이 서로 뒤바뀌어 있었다**(Veo 경로는
+처음부터 갈라져 있었으니 모델만 바꿔도 범주가 뒤집혔다). 라벨을 새로 만들면
+`09-prompt.js` 의 `SD_ITEM_LINE` 에도 넣어야 한다 — 빠뜨리면 그 줄만 조용히 중복 제거가
+안 걸린다. **그룹에 `xg` 를 달아 가르면 안 된다** —
 `xg` 는 '이 묶음에서 하나만' 이라서 함께 골라야 하는 장면 제어 항목들이 서로를 밀어낸다.
 
 ---
@@ -168,8 +183,13 @@ Seedance 출력에서 `Captured on shot on ARRI Alexa 35` 같은 비문이 나�
 
 ## 3. 가이드 사진 (자주 건드리게 된다)
 
-`src/apps/{image,t2v}/app.js` 의 `GUIDE_IMG` 가 라벨 → 파일을 잇는다. **두 앱의 맵은 같아야 한다**
-(검수가 대조한다). 사진은 `public/thumbs/` 에 있고 3단 사다리로 낸다.
+`src/shared/engine/01-data.js` 의 `GUIDE_IMG` 가 라벨 → 파일을 잇는다. **맵은 한 벌뿐이다.**
+사진은 `public/thumbs/` 에 있고 3단 사다리로 낸다.
+
+`verify:guide-assets` 가 보는 것은 ① 한 스텝의 선택지가 전부 사진이거나 전부 도식인가
+(라벨을 한 글자만 바꿔도 그 카드만 도식으로 떨어진다) ② 아무도 안 쓰는 사진이 있는가
+③ 한 파일을 두 라벨이 나눠 쓰는가 — 셋뿐이다. **어떤 라벨에 어떤 사진이 맞는가는 기계가
+알 수 없다.** 사진을 바꿔 달았으면 화면을 열어 눈으로 확인할 것.
 
 | 칸 | 위치 | 크기 |
 |---|---|---|

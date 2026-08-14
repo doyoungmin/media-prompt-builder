@@ -8,10 +8,11 @@
 import { mkdirSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 
-function guideFiles(app = "image") {
-  const source = readFileSync(`src/apps/${app}/app.js`, "utf8");
-  const block = source.match(/const GUIDE_IMG\s*=\s*\{([\s\S]*?)\};\/\*==SLOT:2==\*\//)?.[1];
-  if (!block) throw new Error(`${app}: GUIDE_IMG 블록을 찾지 못함`);
+/* 정본은 엔진 하나뿐이다(01-data.js) — 예전엔 앱마다 한 벌씩 있었다 */
+function guideFiles() {
+  const source = readFileSync("src/shared/engine/01-data.js", "utf8");
+  const block = source.match(/const GUIDE_IMG = \{([\s\S]*?)\n\};/)?.[1];
+  if (!block) throw new Error("01-data.js 에서 GUIDE_IMG 블록을 찾지 못함");
   return [...new Set([...block.matchAll(/"\/thumbs\/(t-\d{3}\.webp)"/g)].map(match => match[1]))].sort();
 }
 

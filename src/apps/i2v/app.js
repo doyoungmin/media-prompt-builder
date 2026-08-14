@@ -1,27 +1,7 @@
 /* i2v 앱 전용 코드 — 공통 엔진(src/shared/engine/*.js)의 SLOT 에 삽입되는 부분.
-   앱별 데이터·설정(CONFIG/프리셋/썸네일 맵 등)은 여기서 수정한다. */
+   여기 남는 것은 CONFIG 하나뿐이다 — 세 앱이 공유하던 사진 맵·충돌 규칙은
+   엔진(01-data.js · 04-preview-3.js)으로 올렸다. 앱별 차이만 여기서 고친다. */
 /*==SLOT:1==*/
-const PHOTO = {
-
-};
-const GUIDE_IMG = {
-
-};/*==SLOT:2==*/
-const PRESET_IMG = {};   /* 이 파일은 룩 프리뷰를 사용하지 않습니다 */
-/* ── 충돌 규칙 ──
-   EXCLUSIVE: 목록 안에서 1개만 선택 가능 (나중 선택이 이전 선택을 대체)
-   PAIRS: A쪽과 B쪽은 양립 불가 (한쪽을 고르면 반대쪽 전체 해제)      */
-const EXCLUSIVE = [
-  ["얕은 심도 보케","딥 포커스"],                                              // 심도
-  ["프리즈 (1/2000s)","모션 블러 (1/15s)","장노출","180도 셔터"],               // 셔터
-  ["ISO 100 클린","ISO 3200 그레인"],                                          // 감도
-  ["텅스텐 WB","데이라이트 WB","믹스드 라이팅"],                                // WB
-  ["로우키","하이키"],                                                         // 키 조명
-  ["골든아워","블루아워","정오 하드광","흐린날 소프트","문라이트"],              // 시간대
-  ["24fps 시네마틱","60fps 부드럽게"],                                         // 프레임레이트
-  ["저대비 플랫","고대비 톤"],                                                 // 대비
-  ["블랙 크러시","리프티드 블랙"],                                             // 섀도 처리
-];/*==SLOT:3==*/
 /* ── 이미지 → 영상 (I2V) 전용 설정 ──
    참조 이미지가 카메라·렌즈·조명·색감을 이미 결정하므로 그 항목들은 제외하고
    '무엇이 어떻게 움직이는가'에만 집중한다.                                   */
@@ -91,7 +71,9 @@ const CONFIG = {
     heading:"원하는 움직임을 고르세요",
     note:"원본 이미지의 스타일은 그대로 두고 움직임만 지정합니다. 마우스를 올리면 구성 항목이 보입니다.",
   },
-  noPreviewImages:true,     // 룩 프리뷰 이미지를 쓰지 않으므로 파일에서 제외
+  // 룩·가이드·칩의 예시 사진을 쓰지 않는다 — 룩은 원본 이미지가 이미 정한다.
+  // 사진 맵은 엔진에 하나뿐이라 비워서 끌 수 없다(05-derive 의 usePhotos).
+  noPreviewImages:true,
 
   presets:{
     "잔잔한 생동감":["고정 (트라이포드)","카메라 고정 유지","미세한 움직임","180도 셔터","한 장면 유지"],
@@ -171,7 +153,10 @@ const CONFIG = {
   models:[
     {key:"veo", label:"Veo 3.1", shortLabel:"Veo",
      help:"Google Veo에서 이미지를 영상으로 만들 때 선택하세요.",
-     guard:" Keep the subject, composition and lighting consistent with the reference image. Render the frame clean, without any text or watermarks.",
+     /* 참조 이미지를 따르라는 것은 I2V 의 요건이지 방지 문구가 아니다 — anchor 로 낸다.
+        예전에는 아래 guard 와 한 문자열이라 '텍스트 방지'를 끄면 함께 빠졌다. */
+     anchor:" Keep the subject, composition and lighting consistent with the reference image.",
+     guard:" Render the frame clean, without any text or watermarks.",
      limit:{short:110, detail:190}},
     {key:"seedance25", label:"Seedance 2.5", shortLabel:"Seedance 2.5",
      help:"Higgsfield의 Seedance 2.5로 최대 30초 영상을 만들 때 선택하세요.",
@@ -194,8 +179,9 @@ const CONFIG = {
     {key:"generic", label:"Kling · Luma · Pika 등", shortLabel:"Kling · Luma",
      help:"Kling·Luma·Pika 등 다른 이미지-영상 모델을 사용할 때 선택하세요.",
      /* 긍정 지시(원본 스타일 유지)는 본문에 남기고, 빼고 싶은 것만 네거티브 칸으로 낸다.
-        예전에는 둘이 한 문자열에 붙어 있어 부정 표현까지 본문으로 나갔다. */
-     guard:", keep the reference image style",
+        예전에는 둘이 한 문자열에 붙어 있어 부정 표현까지 본문으로 나갔다.
+        그 뒤에도 이 지시가 guard 자리에 있어서 '텍스트 방지'를 끄면 사라졌다 — anchor 로 옮겼다. */
+     anchor:", keep the reference image style",
      negative:"text, watermark",
      limit:{short:70, detail:130}},
   ],
@@ -215,15 +201,20 @@ const CONFIG = {
       const preserve = sd.preserve==="strict"
         ? "Keep the subject identity, outfit, composition, lighting and visual style unchanged from the reference image."
         : "Keep the subject clearly recognisable from the reference image; natural variation in pose and lighting is fine.";
+      /* 구간을 채웠을 때만 '구간들' 을 말할 수 있다 — t2v/app.js 의 같은 주석 참고 */
+      const segmented = model==="seedance25" && sdMulti();
       return sdPrompt({
         hasUserInput:!!motion,
         head: "Animate the reference image as the first frame."+(motion ? " "+dot(cap(motion)) : ""),
-        camera: listText([...cameraMove, ...items("shot")]),
+        framing: listText(items("shot")),
+        camera: listText(cameraMove),
         motion: listText(motionAmount),
         continuity: listText(continuity),
         style: listText(rendering),
         keep: model==="seedance25"
-          ? preserve+" Keep continuity across all segments; do not introduce new people, objects or locations unless explicitly requested."
+          ? preserve+(segmented
+              ? " Keep continuity across all segments; do not introduce new people, objects or locations unless explicitly requested."
+              : " Do not introduce new people, objects or locations unless explicitly requested.")
             +(outputLength==="detail" ? " Keep the motion physically plausible and transitions coherent." : "")
           : preserve+" One continuous shot, no new people, objects or scene changes."
             +(outputLength==="detail" ? " Keep the motion subtle and physically plausible throughout." : ""),

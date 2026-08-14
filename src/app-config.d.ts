@@ -26,6 +26,12 @@ interface ModelSpec {
    */
   guard?: string;
   /**
+   * 이 모델에 늘 필요한 지시(예: I2V 의 '참조 이미지를 따르라').
+   * guard 와 달리 '텍스트 방지' 토글의 영향을 받지 않는다 — 방지 문구가 아니라
+   * 결과물의 요건이기 때문이다. 둘을 한 문자열에 넣으면 토글을 끌 때 함께 빠진다.
+   */
+  anchor?: string;
+  /**
    * 본문 대신 '네거티브 프롬프트' 칸으로 낼 방지 문구(쉼표로 나열).
    * 키워드 나열형 모델은 본문의 부정 표현을 지시로 읽지 못하고 그 단어에 가중치를 준다.
    * guard 와 함께 쓸 수 있다 — 긍정 지시는 guard 로, 빼고 싶은 것은 여기로.
@@ -93,7 +99,11 @@ interface AppConfig {
 
   /** 레퍼런스 룩 탭의 문구 */
   look?: { tab?: string; tabSub?: string; heading?: string; note?: string };
-  /** 사진 없이 도식만 쓰는 앱 */
+  /**
+   * 예시 사진(칩·가이드·룩)을 쓰지 않고 SVG 도식만 쓰는 앱.
+   * 사진 맵은 엔진에 한 벌뿐이라(01-data.js) 앱이 비워서 끌 수 없다 —
+   * 05-derive.js 의 usePhotos 가 이 값을 읽어 끈다.
+   */
   noPreviewImages?: boolean;
   /** 앱 전용 프리셋 (없으면 공통 프리셋) */
   presets?: Record<string, string[]>;

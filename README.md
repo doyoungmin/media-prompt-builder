@@ -30,7 +30,8 @@ npm run build            # dist/ 생성
   | `07-events.js` | 이벤트·선택·되돌리기 |
   | `08-sync.js` | 동기화·Seedance 패널·저장·테마 |
   | `09-prompt.js` | 프롬프트 조립과 복사 |
-- `src/apps/*/app.js` — 앱별 차이만 담은 코드 (CONFIG·프리셋·썸네일 맵). 옵션 수정은 여기서
+- `src/apps/*/app.js` — 앱별 차이만 담은 `CONFIG` 하나. 모델·섹션·가이드·프리셋 수정은 여기서
+  (세 앱이 똑같이 쓰던 사진 맵·충돌 규칙은 엔진 `01-data.js`·`04-preview-3.js` 에 있다)
 - `public/thumbs/` — 예시 사진 webp + `thumbs-map.json` (한글 키 → 파일명)
 
 수정 → 반영 흐름: 공통 수정은 `src/shared/engine/`의 해당 기능 조각, 앱별 수정은 해당
