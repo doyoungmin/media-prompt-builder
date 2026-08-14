@@ -93,7 +93,11 @@ interface AppConfig {
 
   /** 레퍼런스 룩 탭의 문구 */
   look?: { tab?: string; tabSub?: string; heading?: string; note?: string };
-  /** 사진 없이 도식만 쓰는 앱 */
+  /**
+   * 예시 사진(칩·가이드·룩)을 쓰지 않고 SVG 도식만 쓰는 앱.
+   * 사진 맵은 엔진에 한 벌뿐이라(01-data.js) 앱이 비워서 끌 수 없다 —
+   * 05-derive.js 의 usePhotos 가 이 값을 읽어 끈다.
+   */
   noPreviewImages?: boolean;
   /** 앱 전용 프리셋 (없으면 공통 프리셋) */
   presets?: Record<string, string[]>;

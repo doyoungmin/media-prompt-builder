@@ -5,15 +5,35 @@
    엉뚱한 크기를 내놓아도 전부 통과한다. srcset 의 `768w` 는 브라우저에게
    하는 약속이므로 파일이 정말 그 폭인지 재야 한다. */
 import { existsSync, readFileSync, statSync } from "node:fs";
+import { JSDOM } from "jsdom";
+import { compose } from "./compose-engine.mjs";
 
 let failed = false;
 function check(condition, message) {
   if (!condition) { console.error(`✗ ${message}`); failed = true; }
 }
-function guideFiles(app) {
-  const source = readFileSync(`src/apps/${app}/app.js`, "utf8");
-  const block = source.match(/const GUIDE_IMG\s*=\s*\{([\s\S]*?)\};\/\*==SLOT:2==\*\//)?.[1] || "";
-  return [...new Set([...block.matchAll(/"\/thumbs\/(t-\d{3}\.webp)"/g)].map(match => match[1]))].sort();
+/* 라벨 → 파일. 정본은 엔진 하나뿐이다(01-data.js).
+   예전에는 image·t2v 의 app.js 에 같은 맵이 두 벌 있었고 여기서 대조했는데,
+   **파일 목록만** 비교해서 두 라벨의 사진을 서로 바꿔 놔도 통과했다.
+   맵이 하나가 된 지금은 대조할 상대가 없으므로, 대신 아래 두 가지를 본다.
+     ① 라벨이 실제로 어느 앱의 가이드 선택지인가 (아니면 사진이 화면에 안 나온다)
+     ② 한 파일을 두 라벨이 나눠 쓰지 않는가 */
+function guideMap() {
+  const source = readFileSync("src/shared/engine/01-data.js", "utf8");
+  const block = source.match(/const GUIDE_IMG = \{([\s\S]*?)\n\};/)?.[1];
+  if (!block) throw new Error("01-data.js 에서 GUIDE_IMG 블록을 찾지 못함");
+  return Object.fromEntries(
+    [...block.matchAll(/"([^"]+)"\s*:\s*"\/thumbs\/(t-\d{3}\.webp)"/g)].map(m => [m[1], m[2]]));
+}
+/** 그 앱의 가이드가 실제로 화면에 내놓는 선택지 — 스텝별로 묶어서 준다 */
+function wizSteps(app) {
+  const html = readFileSync(`${app}/index.html`, "utf8")
+    .replace(/<script type="module"[^>]*><\/script>/g, "");
+  const dom = new JSDOM(html, { url: `https://example.com/${app}/`,
+    runScripts: "outside-only", pretendToBeVisual: true });
+  dom.window.eval(compose(app) + `window.__ = { wiz: WIZ, photos: usePhotos };`);
+  const { wiz, photos } = dom.window.__;
+  return { photos, steps: wiz.map(s => ({ key: s.key, opts: Object.keys(s.opts) })) };
 }
 
 /** WebP 헤더에서 폭·높이를 읽는다 (VP8 / VP8L / VP8X 세 형식) */
@@ -52,9 +72,34 @@ function webp(path, wantWidth) {
   return statSync(path).size;
 }
 
-const imageFiles = guideFiles("image"), t2vFiles = guideFiles("t2v");
-check(imageFiles.length === 20, `image GUIDE_IMG가 20장이 아님 (${imageFiles.length})`);
-check(imageFiles.join(",") === t2vFiles.join(","), "image와 t2v GUIDE_IMG 목록이 다름");
+const map = guideMap();
+const labels = Object.keys(map);
+const imageFiles = [...new Set(Object.values(map))].sort();
+check(labels.length === 20, `GUIDE_IMG가 20장이 아님 (${labels.length})`);
+check(imageFiles.length === labels.length,
+  `한 파일을 여러 라벨이 나눠 쓰고 있음 (라벨 ${labels.length} · 파일 ${imageFiles.length})`);
+
+/* 한 스텝의 선택지는 전부 사진이거나 전부 도식이어야 한다.
+   선택지 이름을 한 글자만 바꿔도 그 카드만 사진을 잃고 도식으로 떨어지는데,
+   파일은 멀쩡히 있고 문법도 맞아서 나머지 검사는 전부 통과한다.
+   앱·스텝 이름을 여기 박아 두지 않으려고 '섞였는가'로 본다 —
+   지금은 image 의 세 스텝과 t2v 의 subject·mood·comp 가 사진, t2v 의 motion 이 도식이다. */
+const used = new Set();
+for (const app of ["image", "t2v", "i2v"]) {
+  const { photos, steps } = wizSteps(app);
+  if (!photos) continue;                       // 예시 사진을 아예 안 쓰는 앱(i2v)
+  for (const step of steps) {
+    const withPhoto = step.opts.filter(o => map[o]);
+    step.opts.forEach(o => { if (map[o]) used.add(o); });
+    check(withPhoto.length === 0 || withPhoto.length === step.opts.length,
+      `${app} 가이드 '${step.key}' 스텝에 사진 있는 선택지와 없는 선택지가 섞임`
+      + ` (${withPhoto.length}/${step.opts.length}) — 사진 없는 쪽: `
+      + step.opts.filter(o => !map[o]).join(", "));
+  }
+}
+for (const label of labels)
+  check(used.has(label),
+    `GUIDE_IMG 의 '${label}' 을 어느 앱의 가이드도 쓰지 않음 — 사진이 화면에 나오지 않는다`);
 
 /* 사다리 — srcset 에 적는 폭과 실제 파일이 1:1 로 맞아야 한다.
    1024 는 파생본이 아니라 원본 자리(public/thumbs/*.webp)다. */

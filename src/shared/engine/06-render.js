@@ -178,7 +178,7 @@ function guideImg(src){
     +` alt="" loading="lazy" decoding="async" width="768" height="432">`;
 }
 function optPv(label, payload){
-  if(typeof GUIDE_IMG!=="undefined" && GUIDE_IMG[label])
+  if(usePhotos && GUIDE_IMG[label])
     return `<span class="pv ph">${guideImg(GUIDE_IMG[label])}</span>`;
   for(const k of payload){ const p=pvOf(k); if(p) return p; }
   return "";
@@ -201,7 +201,7 @@ document.getElementById("wiz").innerHTML = WIZ.map((s,i)=>{
 
 const presetWrap=document.getElementById("presets");
 function presetPreview(name,payload){
-  const img=(typeof PRESET_IMG!=="undefined" && PRESET_IMG[name]) || "";
+  const img=(usePhotos && PRESET_IMG[name]) || "";
   if(img) return `<img src="${img}" alt="${name} 예시" loading="lazy">`;
   const explicit=CONFIG.presetPv && CONFIG.presetPv[name];
   if(explicit){
