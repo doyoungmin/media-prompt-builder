@@ -88,12 +88,24 @@ CI 가 빨간불이면 실행 페이지 아래에 **`playwright-debug`** 아티�
 그린다. 둘을 함께 쓸 수 있다(i2v 범용: 긍정 지시는 `guard`, 뺄 것은 `negative`).
 칸은 `08-sync.js` 가 만들고 `negative` 를 쓰는 모델이 없는 앱에는 아예 안 생긴다.
 
+**늘 필요한 지시는 `guard` 가 아니라 `anchor` 다.** I2V 의 "참조 이미지를 따르라"가
+방지 문구와 한 문자열로 묶여 있어서, 영상에 글자를 넣으려고 '텍스트 방지'를 끄면
+그 지시까지 함께 빠졌다. `anchor` 는 토글의 영향을 받지 않는다. 둘을 다시 합치면
+`verify:config` 가 잡는다(anchor 안의 text·watermark 를 막는다).
+
 ### 무빙 섹션은 라벨을 붙일 때 갈라야 한다
 
 무빙 한 섹션에 카메라의 움직임 · 움직임의 크기 · 속도감 · 장면 제어가 같이 있다.
 한 라벨 아래 몰면 `Camera motion: slow dolly push-in, subtle minimal motion, almost still`
 처럼 **다가가면서 정지해 있으라는 모순**이 된다. `05-derive.js` 의 `MOVE_GROUPS` 로 가르고,
-그룹 라벨이 바뀌면 `verify:config` 가 잡는다. **그룹에 `xg` 를 달아 가르면 안 된다** —
+그룹 라벨이 바뀌면 `verify:config` 가 잡는다.
+
+같은 이유로 Seedance 줄도 갈라져 있다 — `Framing`(무엇이 어떻게 담기는가) ·
+`Camera`(장비와 그 움직임) · `Motion` · `Continuity` · `Style`. 한때 프레이밍이 `Camera`
+줄에 있고 바디·렌즈가 `Style` 줄에 있어 **라벨과 내용이 서로 뒤바뀌어 있었다**(Veo 경로는
+처음부터 갈라져 있었으니 모델만 바꿔도 범주가 뒤집혔다). 라벨을 새로 만들면
+`09-prompt.js` 의 `SD_ITEM_LINE` 에도 넣어야 한다 — 빠뜨리면 그 줄만 조용히 중복 제거가
+안 걸린다. **그룹에 `xg` 를 달아 가르면 안 된다** —
 `xg` 는 '이 묶음에서 하나만' 이라서 함께 골라야 하는 장면 제어 항목들이 서로를 밀어낸다.
 
 ---

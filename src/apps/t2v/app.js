@@ -158,18 +158,30 @@ const CONFIG = {
       const cameraMove=moveItems("camera");
       const motionAmount=moveItems("amount");
       const continuity=moveItems("scene");
-      const rendering=[...moveItems("time"), ...pick("body","lens","light","film","tech")];
+      /* 바디·렌즈는 Camera 줄이다. 예전에는 Style 줄에 있었고 프레이밍이 Camera 줄에
+         있어서 라벨과 내용이 뒤바뀌어 있었다 — Veo 경로는 처음부터 갈라져 있었다. */
+      const gear=pick("body","lens");
+      const rendering=[...moveItems("time"), ...pick("light","film","tech")];
+      /* 2.5 는 구간을 채웠을 때만 '구간들' 을 말할 수 있다. 안 채웠는데 그렇게 말하면
+         없는 구조를 지시하게 된다. 그렇다고 2.0 처럼 한 컷으로 묶지도 않는다 —
+         여러 숏을 엮는 것이 2.5 를 고른 이유일 수 있어 숏 수는 열어 두고 일관성만 건다. */
+      const segmented = model==="seedance25" && sdMulti();
       return sdPrompt({
         hasUserInput:!!subj,
         head: subj,
-        camera: listText([...items("shot"), ...cameraMove]),
+        framing: listText(items("shot")),
+        camera: listText([...cameraMove, ...gear]),
         motion: listText(motionAmount),
         continuity: listText(continuity),
         style: listText(rendering),
-        keep: model==="seedance25"
+        keep: segmented
           ? (outputLength==="detail"
             ? "Maintain subject identity, wardrobe and setting consistency across all segments, with physically plausible motion and coherent transitions."
             : "Keep the subject and setting consistent across all segments.")
+          : model==="seedance25"
+          ? (outputLength==="detail"
+            ? "Keep the subject, wardrobe and setting consistent throughout, and keep the motion physically plausible."
+            : "Keep the subject and setting consistent throughout.")
           : (outputLength==="detail"
             ? "One continuous shot. Keep the subject, wardrobe and setting consistent throughout, and keep the motion physically plausible."
             : "One continuous shot. Keep the subject and setting consistent throughout."),

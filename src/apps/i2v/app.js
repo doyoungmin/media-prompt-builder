@@ -153,7 +153,10 @@ const CONFIG = {
   models:[
     {key:"veo", label:"Veo 3.1", shortLabel:"Veo",
      help:"Google Veo에서 이미지를 영상으로 만들 때 선택하세요.",
-     guard:" Keep the subject, composition and lighting consistent with the reference image. Render the frame clean, without any text or watermarks.",
+     /* 참조 이미지를 따르라는 것은 I2V 의 요건이지 방지 문구가 아니다 — anchor 로 낸다.
+        예전에는 아래 guard 와 한 문자열이라 '텍스트 방지'를 끄면 함께 빠졌다. */
+     anchor:" Keep the subject, composition and lighting consistent with the reference image.",
+     guard:" Render the frame clean, without any text or watermarks.",
      limit:{short:110, detail:190}},
     {key:"seedance25", label:"Seedance 2.5", shortLabel:"Seedance 2.5",
      help:"Higgsfield의 Seedance 2.5로 최대 30초 영상을 만들 때 선택하세요.",
@@ -176,8 +179,9 @@ const CONFIG = {
     {key:"generic", label:"Kling · Luma · Pika 등", shortLabel:"Kling · Luma",
      help:"Kling·Luma·Pika 등 다른 이미지-영상 모델을 사용할 때 선택하세요.",
      /* 긍정 지시(원본 스타일 유지)는 본문에 남기고, 빼고 싶은 것만 네거티브 칸으로 낸다.
-        예전에는 둘이 한 문자열에 붙어 있어 부정 표현까지 본문으로 나갔다. */
-     guard:", keep the reference image style",
+        예전에는 둘이 한 문자열에 붙어 있어 부정 표현까지 본문으로 나갔다.
+        그 뒤에도 이 지시가 guard 자리에 있어서 '텍스트 방지'를 끄면 사라졌다 — anchor 로 옮겼다. */
+     anchor:", keep the reference image style",
      negative:"text, watermark",
      limit:{short:70, detail:130}},
   ],
@@ -197,15 +201,20 @@ const CONFIG = {
       const preserve = sd.preserve==="strict"
         ? "Keep the subject identity, outfit, composition, lighting and visual style unchanged from the reference image."
         : "Keep the subject clearly recognisable from the reference image; natural variation in pose and lighting is fine.";
+      /* 구간을 채웠을 때만 '구간들' 을 말할 수 있다 — t2v/app.js 의 같은 주석 참고 */
+      const segmented = model==="seedance25" && sdMulti();
       return sdPrompt({
         hasUserInput:!!motion,
         head: "Animate the reference image as the first frame."+(motion ? " "+dot(cap(motion)) : ""),
-        camera: listText([...cameraMove, ...items("shot")]),
+        framing: listText(items("shot")),
+        camera: listText(cameraMove),
         motion: listText(motionAmount),
         continuity: listText(continuity),
         style: listText(rendering),
         keep: model==="seedance25"
-          ? preserve+" Keep continuity across all segments; do not introduce new people, objects or locations unless explicitly requested."
+          ? preserve+(segmented
+              ? " Keep continuity across all segments; do not introduce new people, objects or locations unless explicitly requested."
+              : " Do not introduce new people, objects or locations unless explicitly requested.")
             +(outputLength==="detail" ? " Keep the motion physically plausible and transitions coherent." : "")
           : preserve+" One continuous shot, no new people, objects or scene changes."
             +(outputLength==="detail" ? " Keep the motion subtle and physically plausible throughout." : ""),
