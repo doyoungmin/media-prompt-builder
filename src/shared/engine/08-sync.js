@@ -281,6 +281,10 @@ function syncOutput(){
                       tone:"swap"});
   if(replacedNotice)
     resultNotes.push({t:"직접 조정한 선택이 교체되었습니다 — '되돌리기'로 복구할 수 있어요", tone:"info"});
+  /* 길이가 크게 넘치면 이 자리에 끼워 넣는다. 아래 SOFT 뒤에 붙이면 항목을 많이 고를수록
+     SOFT 가 무더기로 터져서, 정작 프롬프트가 3배로 길어진 순간에 그 경고만 툴팁 맨 끝으로
+     밀려났다(실측: 386단어일 때 15건 중 15번째). 화면에는 첫 건만 나온다. */
+  const urgentAt = resultNotes.length;
   SOFT.filter(r=>r.a.some(active)&&r.b.some(active))
       .forEach(r=>resultNotes.push({t:r.msg, tone:"warn"}));
 
@@ -317,12 +321,24 @@ function syncOutput(){
     b.classList.toggle("on",on); b.setAttribute("aria-pressed",on);
   });
 
-  const shortWords=wordCount(buildForLength("short"));
-  const detailWords=wordCount(buildForLength("detail"));
-  LEN_SHORT.textContent=`간결 · ${shortWords}단어`;
-  LEN_DETAIL.textContent=`상세 · ${detailWords}단어`;
+  /* 두 길이를 다 만들어 둔다. 예전에는 여기서 두 번 만들고 아래에서 build() 를 또 불러
+     한 글자마다 세 번 돌았는데, 세 번째는 이 둘 중 하나와 글자까지 같다. */
+  const shortText=buildForLength("short");
+  const detailText=buildForLength("detail");
+  LEN_SHORT.textContent=`간결 · ${wordCount(shortText)}단어`;
+  LEN_DETAIL.textContent=`상세 · ${wordCount(detailText)}단어`;
+  /* 상세가 간결과 글자까지 같으면 눌러도 아무 일이 안 일어난다 — 비활성으로 둔다.
+     상세는 항목마다 EXT(특성 서술)를 덧붙이는 것인데, EXT 가 없는 섹션만 고르면
+     그런 상태가 된다. '기술 디테일' 섹션은 세 앱 모두 EXT 가 하나도 없어서
+     '장비 + 디테일' 같은 묶음에서 실제로 벌어진다.
+     "할 일이 없는 버튼은 비활성" 은 이 저장소가 이미 세운 규칙이다(e2e/app.spec.ts). */
+  const sameLength = shortText===detailText;
+  LEN_DETAIL.disabled = sameLength;
+  LEN_DETAIL.title = sameLength
+    ? "지금 고른 항목에는 덧붙일 특성 서술이 없어 간결과 결과가 같습니다"
+    : "항목마다 특성 서술을 덧붙여 더 자세하게 만듭니다";
 
-  const txt=build();
+  const txt = outputLength==="short" ? shortText : detailText;
   const promptEl=PROMPT_EL;
   promptEl.value=txt;
   /* I2V 처럼 특정 입력이 없으면 프롬프트를 만들지 않는 앱에서는,
@@ -343,9 +359,16 @@ function syncOutput(){
   const words=wordCount(txt);
   // limit은 모델의 하드 제한이 아니라 이 앱의 권장 길이 기준이다.
   const lim=model.limit || {short:80, detail:150};
-  if(words>lim[outputLength]) resultNotes.push({
-    t:"권장 길이보다 길어요 — "+(outputLength==="short"?"항목을 줄이세요":"간결 모드 권장"),
-    tone:"warn"});
+  const limit=lim[outputLength];
+  if(words>limit){
+    /* 얼마나 넘쳤는지를 숫자로 준다 — '길어요' 만으로는 100단어인지 400단어인지 모른다.
+       ' — ' 앞이 화면에 보이는 부분이라(setNote) 배수와 단어 수를 그쪽에 둔다. */
+    const over=words/limit;
+    const note={t:`권장 ${limit}단어의 ${over.toFixed(1)}배 (${words}단어)`
+      +" — "+(outputLength==="short"?"항목을 줄이세요":"간결 모드 권장"), tone:"warn"};
+    // 1.5배까지는 조합 경고가 더 급하다. 그 위는 프롬프트 품질을 가장 크게 해치는 요인이다.
+    if(over>1.5) resultNotes.splice(urgentAt,0,note); else resultNotes.push(note);
+  }
   // 확인 문구는 맨 뒤 — 고쳐야 할 것이 있으면 그쪽이 먼저 보여야 한다
   /* '현재 총 N개' 는 빼둔다 — '현재 선택' 이 같은 수를 더 정확히(출력 제외분까지)
      세고 있어서, 두 숫자가 어긋나 보이면 어느 쪽을 믿을지 헷갈린다. */

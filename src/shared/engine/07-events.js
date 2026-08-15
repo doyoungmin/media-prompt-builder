@@ -365,6 +365,9 @@ function reset(){
   if(changed) pushHistory();
   DATA.forEach(sec=>state[sec.id].clear());
   ORDER.forEach(id=>scope[id]=true);
+  /* 위 changed 판정이 !guardOn 을 '바뀐 게 있다'로 세면서 정작 되돌리지는 않았다.
+     토글만 끄고 초기화를 누르면 아무것도 안 변하는 되돌리기 단계만 하나 쌓였다. */
+  guardOn=true;
   wizPick={}; syncWizUI();
   activePreset=null; syncPresetUI();
   document.getElementById("subject").value="";

@@ -105,6 +105,46 @@ test("복사해도 버튼 아이콘이 남는다", async ({ page, context, brows
     expect(await page.evaluate(() => navigator.clipboard.readText())).not.toBe("");
 });
 
+/* 길이 경고는 항목을 많이 고를수록 SOFT 조합 경고 뒤로 밀렸다. 화면에는 첫 건만
+   나오므로(setNote), 프롬프트가 3배로 길어진 바로 그 순간에 정확히 안 보였다.
+   실측 386단어일 때 15건 중 15번째였다. 보이느냐가 쟁점이라 jsdom 으로는 못 잡는다. */
+test("프롬프트가 크게 길어지면 그 경고가 화면 글자로 보인다", async ({ page }) => {
+  await page.goto("/t2v/");
+  await page.click("#tab-manual");
+  await page.evaluate(() =>
+    document.querySelectorAll<HTMLElement>(".chip[data-kr]").forEach(chip => chip.click()));
+  const words = await page.evaluate(() =>
+    (document.getElementById("prompt") as HTMLTextAreaElement).value.trim().split(/\s+/).length);
+  expect(words, "항목을 다 골랐는데 권장 130단어의 1.5배를 못 넘음").toBeGreaterThan(195);
+  // #outNote 에는 첫 건만 쓰인다 — 여기 보인다는 것이 곧 맨 앞으로 왔다는 뜻이다
+  await expect(page.locator("#outNote")).toContainText(/권장 \d+단어의 [\d.]+배/);
+});
+
+/* 상세는 항목마다 EXT(특성 서술)를 덧붙이는 것이라, EXT 가 없는 항목만 고르면
+   간결과 글자까지 같아진다. 그때도 버튼이 활성이면 눌러도 아무 일이 안 일어난다 —
+   "할 일이 없는 버튼은 비활성" 은 아래 키보드 테스트가 이미 세운 규칙이다. */
+test("상세가 간결과 같은 결과를 낼 때 그 버튼은 비활성이다", async ({ page }) => {
+  await page.goto("/i2v/");
+  const detail = page.locator('[data-length="detail"]');
+  await expect(detail, "아무것도 안 고른 상태에서 활성").toBeDisabled();
+  await page.fill("#subject", "her hair drifts in the wind");
+  // 카메라 무빙에는 EXT 가 있다 — 상세가 실제로 달라진다
+  await page.locator("[data-preset]").first().click();
+  await expect(detail).toBeEnabled();
+});
+
+/* 초기화는 !guardOn 을 '바뀐 게 있다'로 세면서 정작 되돌리지 않았다.
+   토글만 끄고 초기화를 누르면 아무것도 안 변하는 되돌리기 단계만 하나 쌓였다. */
+test("초기화가 텍스트 방지를 되돌린다", async ({ page }) => {
+  await page.goto("/t2v/");
+  const guard = page.locator("#guardBtn");
+  await expect(guard).toHaveAttribute("aria-pressed", "true");
+  await guard.click();
+  await expect(guard).toHaveAttribute("aria-pressed", "false");
+  await page.locator("[data-act='reset']").click();
+  await expect(guard).toHaveAttribute("aria-pressed", "true");
+});
+
 test("작업이 새로고침 뒤에도 남는다", async ({ page }) => {
   await page.goto("/t2v/");
   await page.fill("#subject", "a cat on a windowsill");
