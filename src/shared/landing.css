@@ -1,0 +1,42 @@
+/* 랜딩(/) 전용 — 세 빌더로 가는 입구.
+   토큰·본문 글꼴은 styles.css 가 이미 정해 뒀다. 여기는 이 페이지의 배치만 담는다.
+   빌더 세 벌에는 이 파일이 실리지 않는다(엔트리마다 따로 불러온다). */
+  .lp{max-width:760px;margin:0 auto;padding:clamp(48px,12vh,120px) var(--sp5) var(--sp6);
+    display:flex;flex-direction:column;gap:var(--sp6)}
+
+  .lp-head{display:flex;flex-direction:column;gap:var(--sp3)}
+  .lp-brand{display:flex;align-items:center;gap:var(--sp3)}
+  .lp-brand img{width:40px;height:40px;flex:0 0 auto}
+  .lp-head h1{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.25}
+  /* 마지막 줄에 한 낱말만 떨어지는 것을 줄인다 — 지원 안 되는 곳에서는 무시된다 */
+  .lp-head p{font-size:14px;color:var(--tx2);max-width:52ch;text-wrap:pretty}
+
+  /* 셋 중 무엇을 고를지가 이 화면의 전부다 — 카드를 크게 둔다 */
+  .lp-list{display:flex;flex-direction:column;gap:var(--sp3);list-style:none}
+  .lp-card{display:flex;align-items:center;gap:var(--sp4);
+    padding:var(--sp4) var(--sp5);background:var(--s1);
+    border:1px solid var(--hair);border-radius:var(--r2);
+    color:var(--tx);text-decoration:none;transition:.14s}
+  .lp-card:hover{border-color:var(--hair-strong);background:var(--s2)}
+  .lp-card:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+  .lp-card img{width:44px;height:44px;flex:0 0 auto}
+  /* 앱 아이콘은 fill="white" 하나로만 그려져 있어 밝은 카드 위에서는 아예 안 보인다.
+     파일도 멀쩡하고 로드도 되므로(naturalWidth > 0) 검사로는 안 잡히고, 실제로
+     화면을 띄워 보고서야 알았다. 앱 헤더의 .brand-ic 가 쓰는 방식을 그대로 쓴다. */
+  :root[data-theme="light"] .lp-card img{filter:invert(1)}
+  .lp-tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .lp-tx b{font-size:15px;font-weight:700;letter-spacing:-.01em}
+  .lp-tx span{font-size:12.5px;color:var(--tx3);line-height:1.5}
+  /* 갈래(· 텍스트에서 생성)는 이름보다 약하게 — 세 카드가 같은 이름을 공유한다 */
+  .lp-tx b em{font-style:normal;font-weight:600;color:var(--tx3)}
+  .lp-go{margin-left:auto;flex:0 0 auto;color:var(--tx3);font-size:16px;line-height:1}
+
+  .lp-foot{font-size:12px;color:var(--tx3)}
+
+  @media(max-width:560px){
+    .lp{padding-top:48px;gap:var(--sp5)}
+    .lp-card{padding:var(--sp3) var(--sp4);gap:var(--sp3)}
+    .lp-card img{width:38px;height:38px}
+    .lp-go{display:none}
+  }
+  @media(prefers-reduced-motion:reduce){ .lp-card{transition:none} }

@@ -7,8 +7,18 @@
    → computed margin-top 이 0 이 되어 '동작 바를 항상 레일 바닥에' 가 아예 동작하지 않았다.
 
    npm run lint:css */
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { pathToFileURL } from "node:url";
+
+/* 검사 대상은 훑어서 모은다. 예전에는 파일 하나를 손으로 적어 뒀는데, 그러면
+   CSS 파일을 새로 만든 순간 조용히 검사 밖으로 빠진다 — 초록불은 그대로다. */
+function cssFiles(dir = "src") {
+  return readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
+    const path = `${dir}/${entry.name}`;
+    if (entry.isDirectory()) return cssFiles(path);
+    return entry.name.endsWith(".css") ? [path] : [];
+  }).sort();
+}
 
 /** shorthand → 그 shorthand 가 덮어쓰는 longhand 들 */
 const SHORTHANDS = {
@@ -84,7 +94,7 @@ export function findCommentBreaks(css) {
 // 직접 실행할 때만 검사한다 (테스트에서 findClobbered 만 import 할 수 있게)
 if (import.meta.url === pathToFileURL(process.argv[1] || "").href) {
   let fail = 0;
-  for (const f of ["src/shared/styles.css"]) {
+  for (const f of cssFiles()) {
     const css = readFileSync(f, "utf-8");
     const breaks = findCommentBreaks(css);
     for (const b of breaks) { fail = 1; console.log(`✗ ${f}:${b.line} — ${b.why}`); }

@@ -65,6 +65,19 @@ async function 위반(page: Page) {
   }));
 }
 
+/* 랜딩(/)도 본다. 운영 주소의 첫 화면인데 CI 는 200 만 확인하고 있었다. */
+for (const theme of THEMES) {
+  test(`랜딩 · ${theme} 테마 — WCAG AA 위반이 없다`, async ({ page, browserName }) => {
+    test.skip(browserName !== "chromium", "DOM·CSS 사실이라 엔진마다 다르지 않다");
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.addInitScript(t => localStorage.setItem("prompt-builder:theme", t), theme);
+    await page.goto("/");
+    expect(await 위반(page), `랜딩/${theme}`).toEqual([]);
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(await 위반(page), `랜딩/${theme}/모바일`).toEqual([]);
+  });
+}
+
 for (const app of APPS) {
   for (const theme of THEMES) {
     test(`${app} · ${theme} 테마 — 세 탭에 WCAG AA 위반이 없다`, async ({ page, browserName }) => {

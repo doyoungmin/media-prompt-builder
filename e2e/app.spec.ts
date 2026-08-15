@@ -34,6 +34,68 @@ test.describe("빌드 산출물이 브라우저에서 뜬다", () => {
   }
 });
 
+/* 랜딩(/)은 운영 주소의 첫 화면인데 지금까지 E2E 밖이었다 — CI 는 200 만 봤다.
+   테마 복원 스크립트가 없어서 라이트를 고른 사람이 여기서만 다크를 보고 있었다. */
+test.describe("랜딩", () => {
+  test("세 빌더로 가는 입구가 뜬다", async ({ page }) => {
+    const errors = watchRuntime(page);
+    await page.goto("/");
+    await expect(page.locator("h1")).toHaveText("미디어 프롬프트 빌더");
+    for (const app of APPS)
+      await expect(page.locator(`.lp-card[href="${app.path}"]`)).toBeVisible();
+    // 아이콘이 실제로 그려졌는지 — 경로 오타는 alt="" 라 눈에 안 띈다
+    expect(await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLImageElement>(".lp img")]
+        .filter(img => !img.complete || img.naturalWidth === 0)
+        .map(img => img.getAttribute("src"))), "그려지지 않은 이미지").toEqual([]);
+    expect(errors, "런타임·자산 오류").toEqual([]);
+  });
+
+  /* 앱 아이콘은 fill="white" 하나로만 그려져 있다. 라이트 테마 카드는 흰 바탕이라
+     그대로 두면 **아이콘이 통째로 안 보인다** — 파일은 멀쩡하고 로드도 되므로
+     naturalWidth 검사도 통과한다. 실제로 화면을 띄워 보고서야 알았다.
+     앱 헤더(.brand-ic)와 같은 방식(filter:invert)으로 뒤집는데, 그 규칙이 사라지면
+     아무도 모르게 다시 사라지므로 여기서 두 테마를 대조해 둔다. */
+  test("라이트 테마에서 카드 아이콘이 바탕에 묻지 않는다", async ({ page }) => {
+    const 필터 = async (theme: string) => {
+      await page.addInitScript(t => localStorage.setItem("prompt-builder:theme", t), theme);
+      await page.goto("/");
+      return page.locator(".lp-card img").first().evaluate(el => getComputedStyle(el).filter);
+    };
+    expect(await 필터("dark"), "다크에서는 뒤집지 않는다").toBe("none");
+    await page.context().clearCookies();
+    expect(await 필터("light"), "라이트에서 흰 아이콘을 그대로 두면 안 보인다").not.toBe("none");
+  });
+
+  test("카드를 누르면 그 빌더로 간다", async ({ page }) => {
+    for (const app of APPS) {
+      await page.goto("/");
+      await page.locator(`.lp-card[href="${app.path}"]`).click();
+      await expect(page).toHaveURL(new RegExp(`${app.path}$`));
+      await expect(page.locator("#appTitleText")).toHaveText(app.name);
+    }
+  });
+
+  test("빌더에서 고른 테마를 현관에서도 따른다", async ({ page }) => {
+    await page.goto("/t2v/");
+    await page.click("#themeLight");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    await page.goto("/");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  });
+
+  for (const w of [1440, 768, 390, 320]) {
+    test(`랜딩 폭 ${w}px 에서 가로로 넘치지 않는다`, async ({ page }) => {
+      await page.setViewportSize({ width: w, height: 900 });
+      await page.goto("/");
+      expect(await page.evaluate(() =>
+        document.documentElement.scrollWidth > document.documentElement.clientWidth + 1),
+        "가로 넘침").toBe(false);
+      await expect(page.locator('.lp-card[href="/i2v/"]')).toBeInViewport();
+    });
+  }
+});
+
 test.describe("각 앱 핵심 흐름", () => {
   for (const app of APPS) {
     test(`${app.path} 선택에서 프롬프트 생성`, async ({ page }) => {

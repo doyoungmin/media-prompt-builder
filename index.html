@@ -22,16 +22,56 @@
 <meta name="apple-mobile-web-app-title" content="프롬프트 빌더">
 <meta name="application-name" content="프롬프트 빌더">
 <link rel="stylesheet" href="/src/shared/styles.css">
+<link rel="stylesheet" href="/src/shared/landing.css">
+<!-- 빌더에서 고른 테마를 현관에서도 따른다. 이게 없어서 라이트를 쓰는 사람이
+     여기서만 다크를 봤다. 첫 페인트 전에 적용해야 깜빡이지 않는다. -->
+<script type="module" src="/src/shared/theme.ts"></script>
 </head>
 <body>
-  <!-- 랜딩: 세 빌더로 가는 입구. 마이그레이션 완료 후 디자인 입힌다. -->
-  <main style="max-width:640px;margin:10vh auto;padding:0 24px;font-family:sans-serif">
-    <h1>미디어 프롬프트 빌더</h1>
-    <ul>
-      <li><a href="/image/">이미지 프롬프트 빌더</a></li>
-      <li><a href="/t2v/">영상 프롬프트 빌더 · 텍스트에서</a></li>
-      <li><a href="/i2v/">영상 프롬프트 빌더 · 이미지에서</a></li>
+  <!-- 세 빌더로 가는 입구. 고를 것이 셋뿐이라 그 선택만 크게 둔다. -->
+  <main class="lp">
+    <div class="lp-head">
+      <div class="lp-brand">
+        <img src="/logo-pb.svg" alt="" width="40" height="40">
+        <h1>미디어 프롬프트 빌더</h1>
+      </div>
+      <p>만들려는 것을 고르세요. 촬영 조건을 단계별로 조립해 영어 프롬프트로 내보냅니다.</p>
+    </div>
+
+    <ul class="lp-list">
+      <li>
+        <a class="lp-card" href="/image/">
+          <img src="/app-icons/image.svg?v=2" alt="" width="44" height="44">
+          <span class="lp-tx">
+            <b>이미지 프롬프트 빌더</b>
+            <span>정지 이미지 · GPT Image · Stable Diffusion 등</span>
+          </span>
+          <span class="lp-go" aria-hidden="true">→</span>
+        </a>
+      </li>
+      <li>
+        <a class="lp-card" href="/t2v/">
+          <img src="/app-icons/t2v.svg?v=2" alt="" width="44" height="44">
+          <span class="lp-tx">
+            <b>영상 프롬프트 빌더 <em>· 텍스트에서 생성</em></b>
+            <span>글로 장면과 움직임을 함께 · Veo · Seedance · Kling 등</span>
+          </span>
+          <span class="lp-go" aria-hidden="true">→</span>
+        </a>
+      </li>
+      <li>
+        <a class="lp-card" href="/i2v/">
+          <img src="/app-icons/i2v.svg?v=2" alt="" width="44" height="44">
+          <span class="lp-tx">
+            <b>영상 프롬프트 빌더 <em>· 이미지에 모션 추가</em></b>
+            <span>가지고 있는 이미지를 움직이게 · 장비·조명·색감은 원본이 정합니다</span>
+          </span>
+          <span class="lp-go" aria-hidden="true">→</span>
+        </a>
+      </li>
     </ul>
+
+    <p class="lp-foot">고른 항목과 입력은 빌더마다 따로 저장됩니다. 화면 테마는 셋이 함께 씁니다.</p>
   </main>
 </body>
 </html>
