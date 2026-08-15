@@ -7,7 +7,6 @@
    '무엇이 어떻게 움직이는가'에만 집중한다.                                   */
 const CONFIG = {
   title:'영상 <span>프롬프트 빌더</span> <em style="font-style:normal;font-size:13px;color:#6b7285">· 이미지에 모션 추가</em>',
-  sub:'가지고 있는 이미지를 움직이게 만드는 용도. 장비·조명·색감은 원본 이미지가 이미 정하므로 다루지 않습니다.',
   subjectLabel:'무엇을 어떻게 움직이게 할까요',
   shortLabel:'움직임 설명',
   subjectPlaceholder:'움직임을 서술하세요 (예: her hair drifts in the wind, she slowly turns toward the camera)',

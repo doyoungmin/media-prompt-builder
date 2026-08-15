@@ -8,11 +8,38 @@
 
    npm run verify:config */
 import { readFileSync } from "node:fs";
+import { parse } from "acorn";
 import { JSDOM } from "jsdom";
-import { compose } from "./compose-engine.mjs";
+import { compose, engineSource } from "./compose-engine.mjs";
 
 const APPS = ["image", "t2v", "i2v"];
 let fail = 0;
+
+/* ── 엔진이 실제로 읽는 CONFIG 키 ──
+   설정에 키를 적어 두고 아무도 안 읽으면, 적은 사람은 동작한다고 믿는데 아무 일도
+   일어나지 않는다. noPreviewImages 가 그런 상태로 오래 있었다.
+
+   문자열로 `CONFIG.키` 를 찾으면 안 된다 — 주석에 그 키를 언급한 것만으로 통과한다.
+   실제로 CONFIG.sub 는 "화면에서 뺐다"는 06-render 의 주석 때문에 살아 있는 것처럼
+   보였다. 그래서 이미 있던 acorn 으로 구문 트리를 읽어 멤버 접근만 센다. */
+const CONFIG_KEYS = (() => {
+  const used = new Set();
+  let dynamic = false;
+  (function walk(node) {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) return node.forEach(walk);
+    if (node.type === "MemberExpression"
+        && node.object?.type === "Identifier" && node.object.name === "CONFIG") {
+      if (!node.computed && node.property.type === "Identifier") used.add(node.property.name);
+      else if (node.computed && node.property.type === "Literal") used.add(String(node.property.value));
+      else dynamic = true;   // CONFIG[변수] — 전수 확인이 불가능해진다
+    }
+    for (const key of Object.keys(node)) if (key !== "type") walk(node[key]);
+  })(parse(engineSource(), { ecmaVersion: "latest", sourceType: "script" }));
+  return { used, dynamic };
+})();
+if (CONFIG_KEYS.dynamic)
+  console.log("※ 엔진에 CONFIG[변수] 접근이 생겼다 — 죽은 설정 검사를 건너뛴다");
 
 function load(app) {
   const html = readFileSync(`${app}/index.html`, "utf-8")
@@ -31,7 +58,7 @@ for (const app of APPS) {
   const bad = (cond, msg) => { if (cond) errs.push(msg); };
   const w = load(app);
   const C = w.__cfg, DATA = w.__data, lookup = w.__lookup;
-  const requiredStrings = ["title", "sub", "subjectLabel", "subjectPlaceholder"];
+  const requiredStrings = ["title", "subjectLabel", "subjectPlaceholder"];
   for (const key of requiredStrings)
     bad(typeof C?.[key] !== "string", `${key} 는 문자열이어야 함`);
   for (const key of ["sections", "order", "wiz", "models"])
@@ -207,6 +234,10 @@ for (const app of APPS) {
   // ── 죽은 설정 ──
   for (const it of C.dropItems || [])
     bad(itemNames.has(it), `dropItems 가 살아 있는 항목을 가리킴(빼지 못함): ${it}`);
+  if (!CONFIG_KEYS.dynamic)
+    for (const key of Object.keys(C))
+      bad(!CONFIG_KEYS.used.has(key),
+        `CONFIG.${key} 를 엔진이 읽지 않음 — 적어 둬도 아무 일이 일어나지 않는다`);
 
   console.log(`${app.padEnd(6)} ${errs.length ? "✗\n  " + errs.join("\n  ") : "OK"}`);
   if (errs.length) fail = 1;

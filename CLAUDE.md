@@ -223,7 +223,7 @@ npm run test:e2e                # 폭별 실제 카드 대조
 | `test:smoke` | 3개 앱이 jsdom 에서 뜨는지 · 레일 순서 · 참조 자산 존재 |
 | `verify:storage` `verify:copy` `verify:pwa` | 각 기능 회귀 (`verify:copy` 는 네거티브 칸도 본다) |
 | `verify:seedance` | 프롬프트 조립 — Seedance 버전별 시간 구간 · 범주 분리 · 사람이 쓴 말 보존 · 빈 입력 |
-| `verify:config` | 앱 설정이 실재하는 섹션·항목을 가리키는지 |
+| `verify:config` | 앱 설정이 실재하는 섹션·항목을 가리키는지 · **엔진이 안 읽는 키가 있는지** |
 | `verify:guide-assets` | 가이드 사진 사다리 계약 |
 | `verify:ops` | 배포 판정 로직 — stdout 없음·CI 진행 중/실패/재실행·인자 조립 |
 | `test:e2e` | **실제 브라우저** — 크로미움 + 사파리. 레이아웃·번들 실행·사진 해상도·접근성 |
@@ -257,6 +257,11 @@ npx playwright test e2e/a11y.spec.ts --project=chromium --workers=6 --repeat-eac
 **타입은 여기까지밖에 못 본다.** `app.js` 는 SLOT 으로 끼워 넣는 조각이라 그 자체로 모듈이
 아니다. 그래서 `src/app-config.d.ts` 는 모양만 적어 두고, 그 값이 *실재하는* 섹션·항목인지는
 `verify:config` 가 런타임으로 본다.
+
+**설정에 키를 적어 두고 아무도 안 읽는 일**이 실제로 있었다 — `noPreviewImages` 는 켜 놓고
+읽는 곳이 없었고, `sub` 는 06-render 의 *주석*에 이름이 적혀 있어서 문자열 검사로는 살아
+있는 것처럼 보였다. 그래서 `verify:config` 는 `acorn` 으로 엔진의 구문 트리를 읽어
+`CONFIG.<키>` 멤버 접근만 센다. **여기를 문자열 `grep` 으로 되돌리면 검사가 헛돈다.**
 
 ---
 
