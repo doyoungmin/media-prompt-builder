@@ -148,6 +148,9 @@
   .seg button{flex:1;border:none;background:none;color:var(--tx3);padding:8px 10px;border-radius:8px;
     cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;transition:.13s;white-space:nowrap}
   .seg button.on{background:var(--s2);color:var(--tx)}
+  /* 눌러도 결과가 달라지지 않는 상태 — 눌리지 않는다는 것이 보여야 고친 값을 한다.
+     동작 버튼(button.act:disabled)과 같은 처리다. */
+  .seg button:disabled{opacity:.38;cursor:not-allowed}
   .mode-help{font-size:11px;color:var(--tx3);margin-top:9px;line-height:1.45}
 
   /* Seedance 전용 입력 — 모델에 seedance 프로필이 있을 때만 나온다 */
