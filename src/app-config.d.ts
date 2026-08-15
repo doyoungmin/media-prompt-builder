@@ -71,8 +71,9 @@ interface SeedanceConfig {
 interface AppConfig {
   /** HTML 을 담은 제목. <em> 안은 갈래로 떼어져 작게 표시된다 */
   title: string;
-  /** 검색·공유용 설명. 화면에는 나오지 않는다 */
-  sub: string;
+  /* 여기에 키를 새로 적을 때 — 엔진이 그 키를 읽지 않으면 verify:config 가 막는다.
+     적어 두기만 하고 아무 일도 안 하는 설정이 실제로 있었다(sub · noPreviewImages).
+     앱 설명은 각 엔트리 HTML 의 <meta name="description"> 이 정본이다. */
 
   subjectLabel: string;
   /** 좁은 자리에 쓸 짧은 이름 */

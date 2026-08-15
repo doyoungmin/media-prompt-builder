@@ -114,7 +114,7 @@ Higgsfield에서 제공하는 2.5의 최대 30초 흐름과 2.0의 기존 6/10�
 | `npm run lint:css` | CSS 자책골(shorthand 가 longhand 를 덮어씀·주석 깨짐) |
 | `npm run test:smoke` | 3개 앱이 jsdom 에서 뜨는지 · 레일 순서 · 참조 자산 존재 |
 | `npm run verify:storage` `verify:copy` `verify:pwa` `verify:seedance` | 각 기능의 회귀 |
-| `npm run verify:config` | 앱 설정의 모양과 실재하는 섹션·항목 참조 |
+| `npm run verify:config` | 앱 설정의 모양과 실재하는 섹션·항목 참조 · 엔진이 안 읽는 죽은 키 |
 | `npm run verify:guide-assets` | 가이드 사진 사다리 계약(존재·치수·16:9·총량·중단점) |
 | `npm run verify:ops` | 배포 판정 로직(stdout 없음·CI 진행 중/실패/재실행·인자 조립) |
 | `npm run test:e2e` | **실제 브라우저**(Playwright) — 3앱 핵심 흐름·레이아웃·테마·키보드·사진 해상도·접근성 |

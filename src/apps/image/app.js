@@ -5,7 +5,6 @@
 /* ── 이미지 전용 설정 ── */
 const CONFIG = {
   title:'이미지 <span>프롬프트 빌더</span>',
-  sub:'정지 이미지 생성용. 촬영 조건을 고르면 영어 프롬프트로 자동 조합됩니다.',
   subjectLabel:'피사체 · 장면',
   shortLabel:'피사체',
   subjectPlaceholder:'무엇을 찍나요? (예: a woman standing in a rainy Tokyo alley)',

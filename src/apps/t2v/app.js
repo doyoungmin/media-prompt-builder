@@ -5,7 +5,6 @@
 /* ── 텍스트 → 영상 (T2V) 전용 설정 ── */
 const CONFIG = {
   title:'영상 <span>프롬프트 빌더</span> <em style="font-style:normal;font-size:13px;color:#6b7285">· 텍스트에서 생성</em>',
-  sub:'Veo · 범용 영상 모델용. 텍스트에서 장면과 움직임을 함께 조합합니다.',
   subjectLabel:'피사체 · 행동 · 장면',
   shortLabel:'피사체 · 행동',
   subjectPlaceholder:'무엇이 어떻게 움직이나요? (예: a woman walks through a rainy Tokyo alley, looking back)',
