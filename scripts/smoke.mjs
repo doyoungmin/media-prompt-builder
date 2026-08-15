@@ -127,4 +127,22 @@ for (const app of ["image", "t2v", "i2v"]) {
   console.log(app, errs.length ? "ERRORS: " + errs.join(" || ") : "OK", JSON.stringify(counts));
   if (errs.length) fail = 1;
 }
+
+/* 랜딩(/)은 엔진을 쓰지 않지만 정적 자산을 여럿 가리킨다. 아이콘은 alt="" 라
+   경로가 틀려도 화면에서 조용히 비고, 위 세 앱 검사는 여기를 보지 않았다. */
+{
+  const html = readFileSync("index.html", "utf-8");
+  const refs = [...new Set([...html.matchAll(/(?:href|src)="(\/[^"]+)"/g)].map(m => m[1]))]
+    .filter(u => !u.startsWith("/src/"))
+    .map(u => u.split("?")[0]);
+  /* 두 종류가 섞여 있다 — 파일(/logo-pb.svg)과 빌더로 가는 라우트(/image/).
+     라우트를 public 에서 찾으면 멀쩡한 링크를 없다고 잡는다(실제로 그랬다).
+     라우트는 그 자리에 엔트리 HTML 이 있어야 한다 — vite 의 input 과 같은 파일이다. */
+  const missing = refs.filter(u =>
+    u.endsWith("/") ? !existsSync(`.${u}index.html`) : !existsSync("public" + u));
+  console.log("index", missing.length ? "ERRORS: 참조가 가리키는 것이 없음: " + missing.join(", ") : "OK",
+    JSON.stringify({ 자산: refs.filter(u => !u.endsWith("/")).length,
+                     라우트: refs.filter(u => u.endsWith("/")).length }));
+  if (missing.length) fail = 1;
+}
 process.exit(fail);
