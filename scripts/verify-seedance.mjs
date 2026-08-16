@@ -161,6 +161,10 @@ for (const app of ["t2v", "i2v"]) {
 }
 
 /* ── 권장 길이 실측 ──
+   여기서 재는 것은 **앱이 만든 출력**이 앱 자신의 권장치 안에 드는가다. 모델이 실제로
+   얼마까지 받는지는 이 저장소 어디에도 근거가 없다 — limit 자체가 대표 프리셋 실측치에서
+   역산한 값이라 이 검사와 순환한다. 모델별 실제 한계를 조사하기 전까지는 이 숫자를
+   "모델 한계" 로 부르지 말 것(src/app-config.d.ts 의 limit 주석 참고).
    limit 은 하드 제한이 아니라 대표 프리셋 + 사용자 입력 여유다. 모든 프리셋의 실제
    최대치보다 작거나 25단어 넘게 느슨하면 경고가 너무 잦거나 사실상 죽는다. */
 for (const app of ["t2v", "i2v"]) {
@@ -181,7 +185,7 @@ for (const app of ["t2v", "i2v"]) {
       }
       const limit = model.limit[length];
       const slack = limit - max;
-      console.log(`\n──────── ${app} · ${model.label} ${length} 최대 ${max}단어 / 권장 ${limit}단어`);
+      console.log(`\n──────── ${app} · ${model.label} ${length} 최대 ${max}단어 / 앱 권장 ${limit}단어`);
       bad(`${app}/${modelKey}/${length}/limit`, slack < 0,
         `대표 프리셋 최대 ${max}단어보다 권장 길이 ${limit}가 짧음`);
       bad(`${app}/${modelKey}/${length}/limit`, slack > 25,

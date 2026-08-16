@@ -180,6 +180,11 @@ test("프롬프트가 크게 길어지면 그 경고가 화면 글자로 보인�
   expect(words, "항목을 다 골랐는데 권장 130단어의 1.5배를 못 넘음").toBeGreaterThan(195);
   // #outNote 에는 첫 건만 쓰인다 — 여기 보인다는 것이 곧 맨 앞으로 왔다는 뜻이다
   await expect(page.locator("#outNote")).toContainText(/권장 \d+단어의 [\d.]+배/);
+  /* 이 숫자는 대표 프리셋 실측치에서 역산한 '앱의 권장' 이지 모델이 자르는 길이가
+     아니다. 화면 한 줄에는 안 들어가므로 툴팁에 그 사실을 적어 둔다 — 문구가 사라지면
+     사용자는 이걸 모델 한계로 읽는다. */
+  await expect(page.locator("#outNote"))
+    .toHaveAttribute("title", /모델의 입력 한계가 아닙니다/);
 });
 
 /* 상세는 항목마다 EXT(특성 서술)를 덧붙이는 것이라, EXT 가 없는 항목만 고르면
