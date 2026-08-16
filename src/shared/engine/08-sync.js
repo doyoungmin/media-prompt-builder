@@ -357,15 +357,20 @@ function syncOutput(){
     NEG_BOX.querySelector("#negPrompt").value = neg;
   }
   const words=wordCount(txt);
-  // limit은 모델의 하드 제한이 아니라 이 앱의 권장 길이 기준이다.
+  /* limit 은 이 앱의 권장 길이지 모델의 입력 한계가 아니다. 대표 프리셋을 실제로
+     조립해 본 최대치에서 역산한 값이라 "이 모델에는 너무 길다" 는 말은 못 한다.
+     화면 문구도 그렇게 읽히면 안 된다 — 툴팁에 그 사실을 그대로 적는다. */
   const lim=model.limit || {short:80, detail:150};
   const limit=lim[outputLength];
   if(words>limit){
     /* 얼마나 넘쳤는지를 숫자로 준다 — '길어요' 만으로는 100단어인지 400단어인지 모른다.
        ' — ' 앞이 화면에 보이는 부분이라(setNote) 배수와 단어 수를 그쪽에 둔다. */
     const over=words/limit;
+    /* 줄바꿈 뒤는 툴팁에만 나온다(setNote). 한 줄짜리 자리에 다 넣을 수 없고,
+       그렇다고 '권장' 이라는 말만 두면 모델이 자르는 길이로 읽힌다. */
     const note={t:`권장 ${limit}단어의 ${over.toFixed(1)}배 (${words}단어)`
-      +" — "+(outputLength==="short"?"항목을 줄이세요":"간결 모드 권장"), tone:"warn"};
+      +" — "+(outputLength==="short"?"항목을 줄이세요":"간결 모드 권장")
+      +"\n이 앱의 권장 길이입니다 — 모델의 입력 한계가 아닙니다.", tone:"warn"};
     // 1.5배까지는 조합 경고가 더 급하다. 그 위는 프롬프트 품질을 가장 크게 해치는 요인이다.
     if(over>1.5) resultNotes.splice(urgentAt,0,note); else resultNotes.push(note);
   }
